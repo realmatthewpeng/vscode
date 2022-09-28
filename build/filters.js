@@ -27,6 +27,7 @@ module.exports.all = [
 	'!test/**/out/**',
 	'!**/node_modules/**',
 	'!src/__pycache__/**',
+	'!GitHub*.vsix'
 ];
 
 module.exports.unicodeFilter = [
