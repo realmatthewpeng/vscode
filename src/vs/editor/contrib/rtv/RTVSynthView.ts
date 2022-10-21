@@ -1,9 +1,9 @@
 import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
-import { MarkdownRenderer } from 'vs/editor/browser/core/markdownRenderer';
+import { MarkdownRenderer } from 'vs/editor/contrib/markdownRenderer/browser/markdownRenderer';
 import { MarkdownString } from 'vs/base/common/htmlContent';
 import { DelayedRunAtMostOne } from 'vs/editor/contrib/rtv/RTVInterfaces';
 import { TableElement, isHtmlEscape, removeHtmlEscape } from 'vs/editor/contrib/rtv/RTVUtils';
-import { IModeService } from 'vs/editor/common/services/modeService';
+import { ILanguageService } from 'vs/editor/common/languages/language';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
 import { badgeBackground } from 'vs/platform/theme/common/colorRegistry';
 import { IThemeService } from 'vs/platform/theme/common/themeService';
@@ -91,7 +91,7 @@ export class ErrorHoverManager {
 
 export class RTVSynthView {
 
-	private _modeService: IModeService;
+	private _langService: ILanguageService;
 	private _openerService: IOpenerService;
 
 	// core elements
@@ -122,7 +122,7 @@ export class RTVSynthView {
 		private readonly _editor: ICodeEditor,
 		readonly originalLineNode: HTMLElement,
 		readonly originalBoxNode: HTMLElement,
-		readonly modeService: IModeService,
+		readonly langService: ILanguageService,
 		readonly openerService: IOpenerService,
 		readonly lineNumber: number,
 		readonly outputVars: string[],
@@ -130,7 +130,7 @@ export class RTVSynthView {
 	) {
 		this._box = originalBoxNode.cloneNode(true) as HTMLDivElement;
 		this._line = originalLineNode.cloneNode(true) as HTMLDivElement;
-		this._modeService = modeService;
+		this._langService = langService;
 		this._openerService = openerService;
 		this._box.id = 'rtv-synth-box';
 		this._box.style.opacity = '0';
@@ -266,7 +266,7 @@ export class RTVSynthView {
 	public updateBoxContent(rows: TableElement[][], init: boolean = false) {
 		const renderer = new MarkdownRenderer(
 							{ 'editor': this._editor },
-							this._modeService,
+							this._langService,
 							this._openerService);
 		const outputVars = new Set(this.outputVars);
 

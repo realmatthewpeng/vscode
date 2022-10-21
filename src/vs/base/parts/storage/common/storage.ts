@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Disposable, IDisposable } from 'vs/base/common/lifecycle';
-import { Emitter, Event } from 'vs/base/common/event';
 import { ThrottledDelayer } from 'vs/base/common/async';
+import { Emitter, Event } from 'vs/base/common/event';
+import { Disposable, IDisposable } from 'vs/base/common/lifecycle';
 import { isUndefinedOrNull } from 'vs/base/common/types';
 
 export enum StorageHint {
@@ -29,6 +29,12 @@ export interface IUpdateRequest {
 export interface IStorageItemsChangeEvent {
 	readonly changed?: Map<string, string>;
 	readonly deleted?: Set<string>;
+}
+
+export function isStorageItemsChangeEvent(thing: unknown): thing is IStorageItemsChangeEvent {
+	const candidate = thing as IStorageItemsChangeEvent | undefined;
+
+	return candidate?.changed instanceof Map || candidate?.deleted instanceof Set;
 }
 
 export interface IStorageDatabase {
@@ -62,12 +68,13 @@ export interface IStorage extends IDisposable {
 	set(key: string, value: string | boolean | number | undefined | null): Promise<void>;
 	delete(key: string): Promise<void>;
 
+	flush(delay?: number): Promise<void>;
 	whenFlushed(): Promise<void>;
 
 	close(): Promise<void>;
 }
 
-enum StorageState {
+export enum StorageState {
 	None,
 	Initialized,
 	Closed
@@ -84,10 +91,12 @@ export class Storage extends Disposable implements IStorage {
 
 	private cache = new Map<string, string>();
 
-	private readonly flushDelayer = this._register(new ThrottledDelayer<void>(Storage.DEFAULT_FLUSH_DELAY));
+	private readonly flushDelayer = new ThrottledDelayer<void>(Storage.DEFAULT_FLUSH_DELAY);
 
 	private pendingDeletes = new Set<string>();
 	private pendingInserts = new Map<string, string>();
+
+	private pendingClose: Promise<void> | undefined = undefined;
 
 	private readonly whenFlushedCallbacks: Function[] = [];
 
@@ -200,9 +209,9 @@ export class Storage extends Disposable implements IStorage {
 		return parseInt(value, 10);
 	}
 
-	set(key: string, value: string | boolean | number | null | undefined): Promise<void> {
+	async set(key: string, value: string | boolean | number | null | undefined): Promise<void> {
 		if (this.state === StorageState.Closed) {
-			return Promise.resolve(); // Return early if we are already closed
+			return; // Return early if we are already closed
 		}
 
 		// We remove the key for undefined/null values
@@ -216,7 +225,7 @@ export class Storage extends Disposable implements IStorage {
 		// Return early if value already set
 		const currentValue = this.cache.get(key);
 		if (currentValue === valueStr) {
-			return Promise.resolve();
+			return;
 		}
 
 		// Update in cache and pending
@@ -228,18 +237,18 @@ export class Storage extends Disposable implements IStorage {
 		this._onDidChangeStorage.fire(key);
 
 		// Accumulate work by scheduling after timeout
-		return this.flushDelayer.trigger(() => this.flushPending());
+		return this.doFlush();
 	}
 
-	delete(key: string): Promise<void> {
+	async delete(key: string): Promise<void> {
 		if (this.state === StorageState.Closed) {
-			return Promise.resolve(); // Return early if we are already closed
+			return; // Return early if we are already closed
 		}
 
 		// Remove from cache and add to pending
 		const wasDeleted = this.cache.delete(key);
 		if (!wasDeleted) {
-			return Promise.resolve(); // Return early if value already deleted
+			return; // Return early if value already deleted
 		}
 
 		if (!this.pendingDeletes.has(key)) {
@@ -252,13 +261,18 @@ export class Storage extends Disposable implements IStorage {
 		this._onDidChangeStorage.fire(key);
 
 		// Accumulate work by scheduling after timeout
-		return this.flushDelayer.trigger(() => this.flushPending());
+		return this.doFlush();
 	}
 
 	async close(): Promise<void> {
-		if (this.state === StorageState.Closed) {
-			return Promise.resolve(); // return if already closed
+		if (!this.pendingClose) {
+			this.pendingClose = this.doClose();
 		}
+
+		return this.pendingClose;
+	}
+
+	private async doClose(): Promise<void> {
 
 		// Update state
 		this.state = StorageState.Closed;
@@ -270,7 +284,7 @@ export class Storage extends Disposable implements IStorage {
 		// Recovery: we pass our cache over as recovery option in case
 		// the DB is not healthy.
 		try {
-			await this.flushDelayer.trigger(() => this.flushPending(), 0 /* as soon as possible */);
+			await this.doFlush(0 /* as soon as possible */);
 		} catch (error) {
 			// Ignore
 		}
@@ -282,9 +296,9 @@ export class Storage extends Disposable implements IStorage {
 		return this.pendingInserts.size > 0 || this.pendingDeletes.size > 0;
 	}
 
-	private flushPending(): Promise<void> {
+	private async flushPending(): Promise<void> {
 		if (!this.hasPending) {
-			return Promise.resolve(); // return early if nothing to do
+			return; // return early if nothing to do
 		}
 
 		// Get pending data
@@ -305,12 +319,30 @@ export class Storage extends Disposable implements IStorage {
 		});
 	}
 
-	whenFlushed(): Promise<void> {
+	async flush(delay?: number): Promise<void> {
 		if (!this.hasPending) {
-			return Promise.resolve(); // return early if nothing to do
+			return; // return early if nothing to do
+		}
+
+		return this.doFlush(delay);
+	}
+
+	private async doFlush(delay?: number): Promise<void> {
+		return this.flushDelayer.trigger(() => this.flushPending(), delay);
+	}
+
+	async whenFlushed(): Promise<void> {
+		if (!this.hasPending) {
+			return; // return early if nothing to do
 		}
 
 		return new Promise(resolve => this.whenFlushedCallbacks.push(resolve));
+	}
+
+	override dispose(): void {
+		this.flushDelayer.dispose();
+
+		super.dispose();
 	}
 }
 
@@ -325,13 +357,9 @@ export class InMemoryStorageDatabase implements IStorageDatabase {
 	}
 
 	async updateItems(request: IUpdateRequest): Promise<void> {
-		if (request.insert) {
-			request.insert.forEach((value, key) => this.items.set(key, value));
-		}
+		request.insert?.forEach((value, key) => this.items.set(key, value));
 
-		if (request.delete) {
-			request.delete.forEach(key => this.items.delete(key));
-		}
+		request.delete?.forEach(key => this.items.delete(key));
 	}
 
 	async close(): Promise<void> { }

@@ -2,7 +2,7 @@ import { IEditorContribution } from 'vs/editor/common/editorCommon';
 import { ITextModel } from 'vs/editor/common/model';
 import { Event } from 'vs/base/common/event';
 import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
-import { IModelContentChangedEvent } from 'vs/editor/common/model/textModelEvents';
+import { IModelContentChangedEvent } from 'vs/editor/common/textModelEvents';
 
 export interface IRTVDisplayBox {
 	/**

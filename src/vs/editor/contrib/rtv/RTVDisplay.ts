@@ -4,8 +4,8 @@ import * as path from 'path';
  */
 
 import 'vs/css!./rtv';
-import { ICursorPositionChangedEvent } from 'vs/editor/common/controller/cursorEvents';
-import { IModelContentChangedEvent } from 'vs/editor/common/model/textModelEvents';
+import { ICursorPositionChangedEvent } from 'vs/editor/common/cursorEvents';
+import { IModelContentChangedEvent } from 'vs/editor/common/textModelEvents';
 import { IScrollEvent, IModelChangedEvent } from 'vs/editor/common/editorCommon';
 import {
 	EditorAction,
@@ -17,9 +17,9 @@ import { EditorLayoutInfo, EditorOption, ConfigurationChangedEvent } from 'vs/ed
 import * as strings from 'vs/base/common/strings';
 import { IRange, Range } from 'vs/editor/common/core/range';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
-import { IModeService } from 'vs/editor/common/services/modeService';
+import { ILanguageService } from 'vs/editor/common/languages/language';
 import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
-import { MarkdownRenderer } from 'vs/editor/browser/core/markdownRenderer';
+import { MarkdownRenderer } from 'vs/editor/contrib/markdownRenderer/browser/markdownRenderer';
 import { IPosition, Position } from 'vs/editor/common/core/position';
 import { MarkdownString } from 'vs/base/common/htmlContent';
 import { IConfigurationChangeEvent, IConfigurationService } from 'vs/platform/configuration/common/configuration';
@@ -49,6 +49,19 @@ import { attachButtonStyler } from 'vs/platform/theme/common/styler';
 import { RTVSynthController } from 'vs/editor/contrib/rtv/RTVSynthController';
 import { Emitter, Event } from 'vs/base/common/event';
 import * as path from 'path';
+
+// TODO (kas) This can be a legit security threat. It's hopefully fine for a research
+//  artifact, but if we ever release this code to be used, we need to sanitize all HTML!
+const htmlPolicy = window.trustedTypes?.createPolicy('rtv', { createHTML: (value) => value });
+
+function setInner(elem: HTMLElement, inner: string): void {
+	if (htmlPolicy) {
+		elem.innerHTML = htmlPolicy.createHTML(inner) as unknown as string;
+	} else {
+		// @ts-ignore
+		elem.innerHTML = inner;
+	}
+}
 
 function indent(s: string): number {
 	return s.length - s.trimLeft().length;
@@ -235,7 +248,7 @@ class RTVOutputDisplayBox {
 		this._box.style.right = '14px';
 		this._box.style.height = 'auto';
 		this._box.style.width = '500px';
-		this._box.innerHTML = this._html;
+		setInner(this._box, this._html);
 		this._box.style.display = 'inline-block';
 		this._box.style.overflowY = 'scroll';
 		this._box.style.overflowX = 'auto';
@@ -272,7 +285,7 @@ class RTVOutputDisplayBox {
 	}
 
 	public setContent(s: string): void {
-		this._box.innerHTML = s;
+		setInner(this._box, s);
 	}
 
 	public getContent(): string {
@@ -280,7 +293,7 @@ class RTVOutputDisplayBox {
 	}
 
 	public clearContent(): void {
-		this._box.innerHTML = this._html;
+		setInner(this._box, this._html);
 	}
 
 	public show(): void {
@@ -447,7 +460,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	constructor(
 		private readonly _controller: RTVController,
 		private readonly _editor: ICodeEditor,
-		private readonly _modeService: IModeService,
+		private readonly _langService: ILanguageService,
 		private readonly _openerService: IOpenerService,
 		public lineNumber: number,
 		deltaVarSet: DeltaVarSet
@@ -557,7 +570,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	}
 
 	public getModeService() {
-		return this._modeService;
+		return this._langService;
 	}
 
 	public getOpenerService() {
@@ -814,11 +827,11 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 			// Otherwise, the divs in a row could become invisible if they are
 			// all empty
 			cellContent = document.createElement('div');
-			cellContent.innerHTML = '&nbsp';
+			setInner(cellContent, '&nbsp');
 		}
 		else if (isHtmlEscape(s)) {
 			cellContent = document.createElement('div');
-			cellContent.innerHTML = removeHtmlEscape(s);
+			setInner(cellContent, removeHtmlEscape(s));
 		} else {
 			let renderedText = r.render(new MarkdownString(s));
 			cellContent = renderedText.element;
@@ -1210,7 +1223,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 
 		const renderer = new MarkdownRenderer(
 			{ 'editor': this._editor },
-			this._modeService,
+			this._langService,
 			this._openerService);
 
 		if (updateInPlace && this.hasContent()) {
@@ -1409,7 +1422,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 		let addButton = document.createElement('div');
 		menubar.appendChild(addButton);
 		addButton.className = 'menubar-menu-button';
-		addButton.innerHTML = '+';
+		setInner(addButton, '+');
 		addButton.onclick = (e) => {
 			e.stopImmediatePropagation();
 			this._controller.contextMenuService.showContextMenu({
@@ -1607,9 +1620,9 @@ class LoopFocusController {
 			let range2 = new Range(end, 1, maxline, model.getLineMaxColumn(maxline));
 			let seedLineContent = lines[seedLineno - 1];
 			let range3 = new Range(seedLineno, indent(seedLineContent) + 1, seedLineno, seedLineContent.length + 1);
-			this._decoration1 = this._controller.addDecoration(range1, { inlineClassName: 'rtv-code-fade' });
-			this._decoration2 = this._controller.addDecoration(range2, { inlineClassName: 'rtv-code-fade' });
-			this._decoration3 = this._controller.addDecoration(range3, { className: 'squiggly-info' });
+			this._decoration1 = this._controller.addDecoration(range1, { description: 'PB Loop Focus', inlineClassName: 'rtv-code-fade' });
+			this._decoration2 = this._controller.addDecoration(range2, { description: 'PB Loop Focus', inlineClassName: 'rtv-code-fade' });
+			this._decoration3 = this._controller.addDecoration(range3, { description: 'PB Loop Focus', className: 'squiggly-info' });
 
 			let endToken = '## END LOOP';
 			if (addEndToken && !lines[end - 2].endsWith(endToken)) {
@@ -1717,7 +1730,7 @@ export class RTVController implements IRTVController {
 	constructor(
 		private readonly _editor: ICodeEditor,
 		@IOpenerService private readonly _openerService: IOpenerService,
-		@IModeService private readonly _modeService: IModeService,
+		@ILanguageService private readonly _langService: ILanguageService,
 		@IConfigurationService configurationService: IConfigurationService,
 		@IContextMenuService public readonly contextMenuService: IContextMenuService,
 		@IThemeService readonly _themeService: IThemeService,
@@ -1753,7 +1766,11 @@ export class RTVController implements IRTVController {
 	}
 
 	public static get(editor: ICodeEditor): RTVController {
-		return editor.getContribution<RTVController>(RTVController.ID);
+		const rs = editor.getContribution<RTVController>(RTVController.ID);
+		if (!rs) {
+			throw `Projection Boxes contribution not found! This should not happen.`;
+		}
+		return rs;
 	}
 
 	public getId(): string {
@@ -2137,7 +2154,7 @@ export class RTVController implements IRTVController {
 		let i = lineNumber - 1;
 		if (i >= this._boxes.length) {
 			for (let j = this._boxes.length; j <= i; j++) {
-				this._boxes[j] = new RTVDisplayBox(this, this._editor, this._modeService, this._openerService, j + 1, this._globalDeltaVarSet);
+				this._boxes[j] = new RTVDisplayBox(this, this._editor, this._langService, this._openerService, j + 1, this._globalDeltaVarSet);
 			}
 		}
 		return this._boxes[i];
@@ -2158,7 +2175,10 @@ export class RTVController implements IRTVController {
 	}
 
 	private isTextEditor() {
-		let editorMode = this._editor.getModel()?.getModeId();
+		// TODO (kas) getModeId() does not exist as of Sept. 2022.
+		//   I'm assuming that we can check for this instead by using the
+		//   languageId, but this may not be correct.
+		const editorMode = this._editor.getModel()?.getLanguageId();
 		return editorMode !== undefined && editorMode !== 'Log'; //'Log' is the language identifier for the output editor
 	}
 
@@ -2196,7 +2216,7 @@ export class RTVController implements IRTVController {
 		let lineCount = this.getLineCount();
 		if (lineCount > this._boxes.length) {
 			for (let j = this._boxes.length; j < lineCount; j++) {
-				this._boxes[j] = new RTVDisplayBox(this, this._editor, this._modeService, this._openerService, j + 1, this._globalDeltaVarSet);
+				this._boxes[j] = new RTVDisplayBox(this, this._editor, this._langService, this._openerService, j + 1, this._globalDeltaVarSet);
 			}
 		}
 	}
@@ -2543,7 +2563,7 @@ export class RTVController implements IRTVController {
 						// nothing to do
 					} else if (deltaNumLines > 0) {
 						for (let j = 0; j < deltaNumLines; j++) {
-							let new_box = new RTVDisplayBox(this, this._editor, this._modeService, this._openerService, i + 1, this._globalDeltaVarSet);
+							let new_box = new RTVDisplayBox(this, this._editor, this._langService, this._openerService, i + 1, this._globalDeltaVarSet);
 							if (!this._makeNewBoxesVisible) {
 								new_box.varRemoveAll();
 							}
@@ -2681,7 +2701,7 @@ export class RTVController implements IRTVController {
 
 		}
 		let range = new Range(lineNumber, colStart, lineNumber, colEnd);
-		let options = { className: 'squiggly-error', hoverMessage: new MarkdownString(description) };
+		let options = { description: description, className: 'squiggly-error', hoverMessage: new MarkdownString(description) };
 		this._errorDecorationID = this.addDecoration(range, options);
 	}
 
@@ -3294,7 +3314,7 @@ export class RTVController implements IRTVController {
 				this.stopFocus();
 			}
 		}
-		if (e.keyCode === KeyCode.KEY_P) {
+		if (e.keyCode === KeyCode.KeyP) {
 			this._peekCounter = 0;
 			if (this._peekTimer !== null) {
 				clearTimeout(this._peekTimer);
@@ -3315,7 +3335,7 @@ export class RTVController implements IRTVController {
 			}
 		}
 
-		if (e.keyCode === KeyCode.KEY_P && e.altKey && e.ctrlKey) { // test this out
+		if (e.keyCode === KeyCode.KeyP && e.altKey && e.ctrlKey) { // test this out
 			this._peekCounter = this._peekCounter + 1;
 			if (this._peekCounter > 1) {
 				if (this._peekTimer !== null) {
@@ -3688,7 +3708,7 @@ createRTVAction(
 createRTVAction(
 	'rtv.fullview',
 	'Full View',
-	KeyMod.Alt | KeyMod.CtrlCmd | KeyCode.KEY_1,
+	KeyMod.Alt | KeyMod.CtrlCmd | KeyCode.Digit1,
 	localize('rtv.fullview', 'Full View'),
 	(c) => {
 		c.changeViewMode(ViewMode.Full);
@@ -3698,7 +3718,7 @@ createRTVAction(
 createRTVAction(
 	'rtv.cursorview',
 	'Cursor and Return View',
-	KeyMod.Alt | KeyMod.CtrlCmd | KeyCode.KEY_2,
+	KeyMod.Alt | KeyMod.CtrlCmd | KeyCode.Digit2,
 	localize('rtv.cursorview', 'Cursor and Return View'),
 	(c) => {
 		c.changeViewMode(ViewMode.CursorAndReturn);
@@ -3708,7 +3728,7 @@ createRTVAction(
 createRTVAction(
 	'rtv.compactview',
 	'Compact View',
-	KeyMod.Alt | KeyMod.CtrlCmd | KeyCode.KEY_3,
+	KeyMod.Alt | KeyMod.CtrlCmd | KeyCode.Digit3,
 	localize('rtv.compactview', 'Compact View'),
 	(c) => {
 		c.changeViewMode(ViewMode.Compact);
@@ -3718,7 +3738,7 @@ createRTVAction(
 createRTVAction(
 	'rtv.stealthview',
 	'Stealth View',
-	KeyMod.Alt | KeyMod.CtrlCmd | KeyCode.KEY_4,
+	KeyMod.Alt | KeyMod.CtrlCmd | KeyCode.Digit4,
 	localize('rtv.stealthview', 'Stealth View'),
 	(c) => {
 		c.changeViewMode(ViewMode.Stealth);
@@ -3728,7 +3748,7 @@ createRTVAction(
 createRTVAction(
 	'rtv.flipmodvars',
 	'Flip Mod Vars',
-	KeyMod.Alt | KeyMod.CtrlCmd | KeyCode.KEY_0,
+	KeyMod.Alt | KeyMod.CtrlCmd | KeyCode.Digit0,
 	localize('rtv.flipmodvars', 'Flip Mod Vars'),
 	(c) => {
 		c.flipModVars();
@@ -3738,7 +3758,7 @@ createRTVAction(
 createRTVAction(
 	'rtv.zoomin',
 	'Flip Zoom',
-	KeyMod.Alt | KeyCode.US_BACKSLASH,
+	KeyMod.Alt | KeyCode.Backslash,
 	localize('rtv.zoomin', 'Flip Zoom'),
 	(c) => {
 		c.flipZoom();
@@ -3818,7 +3838,7 @@ createRTVAction(
 createRTVAction(
 	'rtv.focusOnLoop',
 	'Focus on Loop using Localized Live Programming',
-	KeyMod.Alt | KeyCode.US_DOT,
+	KeyMod.Alt | KeyCode.Period,
 	localize('rtv.focusOnLoop', 'Focus on Loop using Localized Live Programming'),
 	(c) => {
 		c.focusOnLoopWithSeed();
@@ -3846,7 +3866,7 @@ createRTVAction(
 createRTVAction(
 	'rtv.addDelay',
 	'Increase the projection box delay',
-	KeyMod.Alt | KeyCode.US_EQUAL,
+	KeyMod.Alt | KeyCode.Equal,
 	localize('rtv.addDelay', 'Increase the projection box delay'),
 	(c) => {
 		c.increaseDelay();
@@ -3856,7 +3876,7 @@ createRTVAction(
 createRTVAction(
 	'rtv.subDelay',
 	'Decrease the projection box delay',
-	KeyMod.Alt | KeyCode.US_MINUS,
+	KeyMod.Alt | KeyCode.Minus,
 	localize('rtv.subDelay', 'Decrease the projection box delay'),
 	(c) => {
 		c.decreaseDelay();
