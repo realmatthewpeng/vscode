@@ -1,8 +1,8 @@
 import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
 import { MarkdownRenderer } from 'vs/editor/contrib/markdownRenderer/browser/markdownRenderer';
 import { MarkdownString } from 'vs/base/common/htmlContent';
-import { DelayedRunAtMostOne } from 'vs/editor/contrib/rtv/RTVInterfaces';
-import { TableElement, isHtmlEscape, removeHtmlEscape } from 'vs/editor/contrib/rtv/RTVUtils';
+import { DelayedRunAtMostOne } from 'vs/editor/contrib/rtv/browser/RTVInterfaces';
+import { TableElement, isHtmlEscape, removeHtmlEscape } from 'vs/editor/contrib/rtv/browser/RTVUtils';
 import { ILanguageService } from 'vs/editor/common/languages/language';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
 import { badgeBackground } from 'vs/platform/theme/common/colorRegistry';
@@ -12,7 +12,7 @@ export class ErrorHoverManager {
 	private errorHover?: HTMLElement = undefined;
 	private addHoverTimer = new DelayedRunAtMostOne();
 
-	constructor(private editor: ICodeEditor) {}
+	constructor(private editor: ICodeEditor) { }
 
 	public remove() {
 		this.addHoverTimer.cancel();
@@ -56,14 +56,14 @@ export class ErrorHoverManager {
 			scrollable.appendChild(row);
 			this.errorHover.appendChild(scrollable);
 
-			let position = element.getBoundingClientRect();
+			const position = element.getBoundingClientRect();
 			this.errorHover.style.position = 'fixed';
 			this.errorHover.style.top = position.top.toString() + 'px';
 			this.errorHover.style.left = position.right.toString() + 'px';
 			this.errorHover.style.padding = '3px';
 
 			// Add it to the DOM
-			let editorNode = this.editor.getDomNode()!;
+			const editorNode = this.editor.getDomNode()!;
 			editorNode.appendChild(this.errorHover);
 
 			this.errorHover.ontransitionend = () => {
@@ -81,11 +81,11 @@ export class ErrorHoverManager {
 				}
 			}, fadeout);
 		})
-		.catch(err => {
-			if (err) {
-				console.error(err);
-			}
-		});
+			.catch(err => {
+				if (err) {
+					console.error(err);
+				}
+			});
 	}
 }
 
@@ -113,7 +113,7 @@ export class RTVSynthView {
 	requestToggleElement?: (idx: number, varname: string, cell: HTMLElement, force?: boolean | undefined, updateSynthBox?: boolean | undefined) => Promise<boolean>;
 	updateCursorPos?: (range: Range, node: HTMLElement) => void;
 	onCellElementsChanged?: (cells: Map<string, HTMLTableCellElement[]>) => void;
-	requestNextCell?: (backwards: boolean, skipLine: boolean, varname: string) => HTMLTableCellElement
+	requestNextCell?: (backwards: boolean, skipLine: boolean, varname: string) => HTMLTableCellElement;
 	requestCurrNode?: () => HTMLElement;
 	resetHighlight?: (idx: number, editable?: boolean | undefined) => void;
 
@@ -208,7 +208,7 @@ export class RTVSynthView {
 		if (this.isHidden()) {
 			this._box.style.opacity = '1';
 			this._line.style.opacity = '1';
-			let editor_div = this._editor.getDomNode();
+			const editor_div = this._editor.getDomNode();
 			if (editor_div === null) {
 				throw new Error('Cannot find Monaco Editor');
 			}
@@ -265,18 +265,18 @@ export class RTVSynthView {
 
 	public updateBoxContent(rows: TableElement[][], init: boolean = false) {
 		const renderer = new MarkdownRenderer(
-							{ 'editor': this._editor },
-							this._langService,
-							this._openerService);
+			{ 'editor': this._editor },
+			this._langService,
+			this._openerService);
 		const outputVars = new Set(this.outputVars);
 
 		this._firstEditableCellId = undefined;
-		let cellElements = new Map<string, HTMLTableCellElement[]>();
+		const cellElements = new Map<string, HTMLTableCellElement[]>();
 
 		if (init) {
 			// remove existing cells
 			this._table!.childNodes.forEach((child) => {
-				this._table!.removeChild(child)
+				this._table!.removeChild(child);
 			});
 			this._table!.id = this.getTableId();
 
@@ -302,7 +302,7 @@ export class RTVSynthView {
 					if (rowIdx > 0) {
 						cell!.id = this.getCellId(elmt.vname!, rowIdx - 1);
 					}
-					this.addCellContentAndStyle(cell!, elmt, renderer, rowIdx == 0);
+					this.addCellContentAndStyle(cell!, elmt, renderer, rowIdx === 0);
 				}
 
 				// skip the headers
@@ -321,7 +321,7 @@ export class RTVSynthView {
 
 						// build cellElements
 						if (outputVars.has(vname)) {
-							let vcells = cellElements!.get(vname) ?? [];
+							const vcells = cellElements!.get(vname) ?? [];
 							vcells.push(cell!);
 							cellElements!.set(vname, vcells);
 						}
@@ -350,9 +350,9 @@ export class RTVSynthView {
 		this.updateCell(cell, elmt, r, header);
 	}
 
-	private updateCell(cell: HTMLTableCellElement, elmt: TableElement, r: MarkdownRenderer, header: boolean = false): HTMLTableCellElement{
+	private updateCell(cell: HTMLTableCellElement, elmt: TableElement, r: MarkdownRenderer, header: boolean = false): HTMLTableCellElement {
 
-		let s = elmt.content;
+		const s = elmt.content;
 		let cellContent: HTMLElement;
 		if (s === '') {
 			// Make empty strings into a space to make sure it's allocated a space
@@ -365,7 +365,7 @@ export class RTVSynthView {
 			cellContent = document.createElement('div');
 			cellContent.innerHTML = removeHtmlEscape(s);
 		} else {
-			let renderedText = r.render(new MarkdownString(s));
+			const renderedText = r.render(new MarkdownString(s));
 			cellContent = renderedText.element;
 		}
 
@@ -395,8 +395,8 @@ export class RTVSynthView {
 	// ------------
 
 	private select(node: Node) {
-		let selection = window.getSelection()!;
-		let range = selection.getRangeAt(0);
+		const selection = window.getSelection()!;
+		const range = selection.getRangeAt(0);
 		range.selectNodeContents(node);
 		selection.removeAllRanges();
 		selection.addRange(range);
@@ -404,14 +404,14 @@ export class RTVSynthView {
 	}
 
 	public highlightRow(idx: number) {
-		let row = this.getRow(idx)!;
-		let theme = this._themeService.getColorTheme();
+		const row = this.getRow(idx)!;
+		const theme = this._themeService.getColorTheme();
 		row.style.fontWeight = '900';
 		row.style.backgroundColor = String(theme.getColor(badgeBackground) ?? '');
 	}
 
 	public removeHighlight(idx: number) {
-		let row = this.getRow(idx)!;
+		const row = this.getRow(idx)!;
 		row.style.fontWeight = row.style.backgroundColor = '';
 	}
 
@@ -423,11 +423,11 @@ export class RTVSynthView {
 				const selection = window.getSelection()!;
 				const range = selection.getRangeAt(0)!;
 				this.updateCursorPos!(range, cell);
-			}
+			};
 
 			cell.onblur = async () => {
 				await this.requestToggleIfChanged!(+idx, varname, cell);
-			}
+			};
 
 			cell.onkeydown = (e: KeyboardEvent) => {
 				let rs: boolean = true;
@@ -437,7 +437,7 @@ export class RTVSynthView {
 
 				this.updateCursorPos!(range, cell);
 
-				switch(e.key) {
+				switch (e.key) {
 					case 'Enter':
 						e.preventDefault();
 
@@ -492,15 +492,15 @@ export class RTVSynthView {
 		let offset = sel.anchorOffset;
 		const range = document.createRange();
 
-		let isString = cell.innerText[0] === '\'' || cell.innerText[0] === '"';
+		const isString = cell.innerText[0] === '\'' || cell.innerText[0] === '"';
 
 		let dest: HTMLElement = cell;
-		while (dest.firstChild && (!dest.classList.contains('monaco-tokenized-source') || dest.childNodes.length == 1)) {
+		while (dest.firstChild && (!dest.classList.contains('monaco-tokenized-source') || dest.childNodes.length === 1)) {
 			dest = dest.firstChild as HTMLElement;
 		}
 
 		if (dest.childNodes.length > 1) {
-			let isNegNum = dest.firstChild!.textContent == '-';
+			const isNegNum = dest.firstChild!.textContent === '-';
 			offset = isNegNum ? cell.innerText.length : dest.childNodes.length - 1;
 		} else {
 			// Select the actual text
@@ -511,7 +511,7 @@ export class RTVSynthView {
 			offset = isString ? cell.innerText.length - 1 : cell.innerText.length;
 		}
 
-		let currNode: HTMLElement = this.requestCurrNode!();
+		const currNode: HTMLElement = this.requestCurrNode!();
 
 		if (currNode.id === cell.id) {
 			try {
@@ -566,7 +566,7 @@ export class RTVSynthView {
 		}
 
 		// Finally, select the next value.
-		let nextCell = this.requestNextCell!(backwards, skipLine, varname);
+		const nextCell = this.requestNextCell!(backwards, skipLine, varname);
 		this.select(nextCell!);
 	}
 
@@ -574,7 +574,7 @@ export class RTVSynthView {
 	 * attempts to move the cursor to the first editable cell inside the table
 	 * @returns ... is successful
 	 */
-	public selectFirstEditableCell() : boolean {
+	public selectFirstEditableCell(): boolean {
 		const firstVar = this.outputVars[0];
 		try {
 			const cellVar = this._firstEditableCellId!.split('-')[1];
@@ -585,7 +585,7 @@ export class RTVSynthView {
 			}
 
 			// this._currRow = +cellId; // already handled by this.select
-			let cell = document.getElementById(this._firstEditableCellId!);
+			const cell = document.getElementById(this._firstEditableCellId!);
 			cell!.contentEditable = 'true';
 			this.select(cell!);
 			return true;

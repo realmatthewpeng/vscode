@@ -1,18 +1,17 @@
-/* eslint-disable code-import-patterns */
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 // import { kill } from 'process';
-import { Utils, RunResult, IRTVLogger, SynthProblem, SynthResult, SynthProcess, RunProcess } from 'vs/editor/contrib/rtv/RTVInterfaces';
-import { RTVLogger } from 'vs/editor/contrib/rtv/RTVLogger';
+import { Utils, RunResult, IRTVLogger, SynthProblem, SynthResult, SynthProcess, RunProcess } from 'vs/editor/contrib/rtv/browser/RTVInterfaces';
+import { RTVLogger } from 'vs/editor/contrib/rtv/browser/RTVLogger';
 import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
 // import { runAtThisOrScheduleAtNextAnimationFrame } from 'vs/base/browser/dom';
 // import { MainThreadFileSystem } from 'vs/workbench/api/browser/mainThreadFileSystem';
 
 // Helper functions / class
 export function getOSEnvVariable(v: string): string {
-	let result = process.env[v];
+	const result = process.env[v];
 	if (result === undefined) {
 		throw new Error('OS environment variable ' + v + ' is not defined.');
 	}
@@ -27,8 +26,8 @@ export function isHtmlEscape(s: string): boolean {
 }
 
 export function removeHtmlEscape(s: string): string {
-	let x = '```html\n'.length;
-	let y = '```'.length;
+	const x = '```html\n'.length;
+	const y = '```'.length;
 	return s.substring(x, s.length - y);
 }
 
@@ -42,7 +41,7 @@ export class TableElement {
 		public env?: any,
 		public leftBorder?: boolean,
 		public editable?: boolean
-	) {}
+	) { }
 }
 
 
@@ -56,7 +55,7 @@ const SNIPPY_UTILS = getOSEnvVariable('SNIPPY_UTILS');
 
 class LocalRunProcess implements RunProcess {
 	protected _reject?: () => void;
-	protected _promise: Promise<RunResult> = new Promise(() => {});
+	protected _promise: Promise<RunResult> = new Promise(() => { });
 
 	public stdout: string = '';
 	public stderr: string = '';
@@ -68,8 +67,7 @@ class LocalRunProcess implements RunProcess {
 			this._reject = reject;
 
 			this._process.stdout.on('data', (data) => this.stdout += data);
-			this._process.stderr.on('data', (data) =>
-			{
+			this._process.stderr.on('data', (data) => {
 				console.log(data.toString());
 				this.stderr += data;
 			});
@@ -176,7 +174,8 @@ class LocalSynthProcess implements SynthProcess {
 			}
 		});
 
-		this._synthProcess
+		// TODO (kas) why was this here?!
+		// this._synthProcess
 	}
 
 	public synthesize(problem: SynthProblem): Promise<SynthResult | undefined> {
@@ -241,7 +240,7 @@ class LocalUtils implements Utils {
 
 		let local_process;
 
-		let options = undefined
+		let options = undefined;
 		if (cwd) {
 			options = { cwd: cwd };
 		}

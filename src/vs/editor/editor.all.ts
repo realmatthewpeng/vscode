@@ -55,7 +55,7 @@ import 'vs/editor/contrib/wordHighlighter/browser/wordHighlighter';
 import 'vs/editor/contrib/wordOperations/browser/wordOperations';
 import 'vs/editor/contrib/wordPartOperations/browser/wordPartOperations';
 import 'vs/editor/contrib/readOnlyMessage/browser/contribution';
-import 'vs/editor/contrib/rtv/RTVDisplay';
+import 'vs/editor/contrib/rtv/browser/RTVDisplay';
 // import 'vs/editor/contrib/rtv/RTVImgDisplay';
 
 // Load up these strings even in VSCode, even if they are not used

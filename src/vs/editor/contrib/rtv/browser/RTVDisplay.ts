@@ -1,8 +1,3 @@
-/* import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
- */
-
 import 'vs/css!./rtv';
 import { ICursorPositionChangedEvent } from 'vs/editor/common/cursorEvents';
 import { IModelContentChangedEvent } from 'vs/editor/common/textModelEvents';
@@ -27,7 +22,7 @@ import { Registry } from 'vs/platform/registry/common/platform';
 import { Extensions, IConfigurationNode, IConfigurationRegistry } from 'vs/platform/configuration/common/configurationRegistry';
 import { localize } from 'vs/nls';
 import { IContextMenuService } from 'vs/platform/contextview/browser/contextView';
-import { Action, IAction, Separator, SubmenuAction} from 'vs/base/common/actions';
+import { Action, IAction, Separator, SubmenuAction } from 'vs/base/common/actions';
 import { IMouseWheelEvent } from 'vs/base/browser/mouseEvent';
 import { IKeyboardEvent } from 'vs/base/browser/keyboardEvent';
 import { KeyCode, KeyMod } from 'vs/base/common/keyCodes';
@@ -41,12 +36,12 @@ import {
 	widgetShadow
 } from 'vs/platform/theme/common/colorRegistry';
 import { IIdentifiedSingleEditOperation, IModelDecorationOptions, ITextModel } from 'vs/editor/common/model';
-import { DelayedRunAtMostOne, RunProcess, RunResult, IRTVController, IRTVLogger, ViewMode, RowColMode, IRTVDisplayBox, BoxUpdateEvent, Utils } from 'vs/editor/contrib/rtv/RTVInterfaces';
-import { getUtils, isHtmlEscape, removeHtmlEscape, TableElement } from 'vs/editor/contrib/rtv/RTVUtils';
+import { DelayedRunAtMostOne, RunProcess, RunResult, IRTVController, IRTVLogger, ViewMode, RowColMode, IRTVDisplayBox, BoxUpdateEvent, Utils } from 'vs/editor/contrib/rtv/browser/RTVInterfaces';
+import { getUtils, isHtmlEscape, removeHtmlEscape, TableElement } from 'vs/editor/contrib/rtv/browser/RTVUtils';
 import { Button } from 'vs/base/browser/ui/button/button';
 import { attachButtonStyler } from 'vs/platform/theme/common/styler';
 // import { RTVSynth } from './RTVSynth';
-import { RTVSynthController } from 'vs/editor/contrib/rtv/RTVSynthController';
+import { RTVSynthController } from 'vs/editor/contrib/rtv/browser/RTVSynthController';
 import { Emitter, Event } from 'vs/base/common/event';
 import * as path from 'path';
 
@@ -94,7 +89,7 @@ function isSeedLine(str: string) {
 }
 
 function isLoopStr(str: string) {
-	let trimmed = str.trim();
+	const trimmed = str.trim();
 	return trimmed.endsWith(':') &&
 		(trimmed.startsWith('for') || trimmed.startsWith('while'));
 }
@@ -109,7 +104,7 @@ function strNumsToArray(s: string): number[] {
 
 // returns true if s matches regExp
 function regExpMatchEntireString(s: string, regExp: string) {
-	let res = s.match(regExp);
+	const res = s.match(regExp);
 	return res !== null && res.index === 0 && res[0] === s;
 }
 
@@ -140,7 +135,7 @@ class DeltaVarSet {
 		}
 	}
 	public applyTo(s: Set<string>, all: Set<string>) {
-		let res = new Set<string>(s);
+		const res = new Set<string>(s);
 		this._plus.forEach(v => {
 			if (all.has(v)) {
 				if (res.has(v)) {
@@ -180,7 +175,7 @@ export class RTVLine {
 		x2: number,
 		y2: number
 	) {
-		let editor_div = editor.getDomNode();
+		const editor_div = editor.getDomNode();
 		if (editor_div === null) {
 			throw new Error('Cannot find Monaco Editor');
 		}
@@ -204,9 +199,9 @@ export class RTVLine {
 	public move(x1: number, y1: number, x2: number, y2: number) {
 		this._div.style.left = x1.toString() + 'px';
 		this._div.style.top = y1.toString() + 'px';
-		let deltaX = (x2 - x1);
-		let deltaY = (y2 - y1);
-		let length = Math.sqrt((deltaX * deltaX) + (deltaY * deltaY));
+		const deltaX = (x2 - x1);
+		const deltaY = (y2 - y1);
+		const length = Math.sqrt((deltaX * deltaX) + (deltaY * deltaY));
 		this._div.style.width = length.toString() + 'px';
 		let angle = 0;
 		if (length !== 0) {
@@ -226,7 +221,7 @@ export class RTVLine {
 }
 
 
-type MapLoopsToCells = { [k: string]: HTMLTableDataCellElement[]; };
+type MapLoopsToCells = { [k: string]: HTMLTableDataCellElement[] };
 
 class RTVOutputDisplayBox {
 	private _box: HTMLDivElement;
@@ -236,7 +231,7 @@ class RTVOutputDisplayBox {
 		private readonly _editor: ICodeEditor
 	) {
 
-		let editor_div = this._editor.getDomNode();
+		const editor_div = this._editor.getDomNode();
 		if (editor_div === null) {
 			throw new Error('Cannot find Monaco Editor');
 		}
@@ -297,7 +292,7 @@ class RTVOutputDisplayBox {
 	}
 
 	public show(): void {
-		let editor_div = this._editor.getDomNode();
+		const editor_div = this._editor.getDomNode();
 		if (editor_div === null) {
 			throw new Error('Cannot find Monaco Editor');
 		}
@@ -311,7 +306,7 @@ class RTVOutputDisplayBox {
 		this._box.style.opacity = '0';
 	}
 
-	public isHidden() : boolean {
+	public isHidden(): boolean {
 		return this._box.style.opacity === '0';
 	}
 
@@ -329,7 +324,7 @@ class RTVOutputDisplayBox {
 
 	public setOutAndErrMsg(outputMsg: string, errorMsg: string) {
 
-		function escapeHTML(unsafe: string) : string {
+		function escapeHTML(unsafe: string): string {
 			return unsafe
 				.replace(/&/g, '&amp;')
 				.replace(/</g, '&lt;')
@@ -341,37 +336,37 @@ class RTVOutputDisplayBox {
 		setTimeout(() => {
 			let errorMsgStyled = '';
 			if (errorMsg !== '') {
-				let errors = escapeHTML(errorMsg).split('\n'); // errorMsg can be null
+				const errors = escapeHTML(errorMsg).split('\n'); // errorMsg can be null
 				let errorStartIndex = -1;
 
 				// Try to find if there is a line number in error, starting with the end
 				// If there is an entire trace, starting at the end gives us the last
 				// frame
-				for (let i = errors.length-1; i >= 0; i--) {
-					let line = errors[i];
+				for (let i = errors.length - 1; i >= 0; i--) {
+					const line = errors[i];
 					if (line.match(/line \d+/g) !== null) { // returns an Array object
 						errorStartIndex = i;
 						break;
 					}
 				}
 
-				if (errorStartIndex == -1) {
+				if (errorStartIndex === -1) {
 					// Could not find line number, just leave error as is
-					errorMsgStyled = errors.join('\n')
+					errorMsgStyled = errors.join('\n');
 				} else {
 					// Found line number, it usually looks as follows:
 					//   Traceback (most recent call last):
 					//   ...
-  					//   File "XYZ", line 7, in <func name>
+					//   File "XYZ", line 7, in <func name>
 					//   NameError: name 'lll' is not defined.
 					// We make the error line red and remove everything except
 					// the last two lines (note that the last line in
 					// errors, namely errors[errors.length-1], is always an empty
 					// string, so the error line is errors[errors.length-2])
-					let errorStartLine = errors[errorStartIndex];
+					const errorStartLine = errors[errorStartIndex];
 					errors[errorStartIndex] = errorStartLine.split(',').slice(1,).join(',');
-					let err = `<div style='color:red;'>${errors[errors.length - 2]}</div>`;
-					errors[errors.length-2] = err;
+					const err = `<div style='color:red;'>${errors[errors.length - 2]}</div>`;
+					errors[errors.length - 2] = err;
 					errorMsgStyled = errors.slice(errorStartIndex, -1).join('\n');
 				}
 			}
@@ -391,7 +386,7 @@ class RTVRunButton {
 		private readonly _controller: RTVController
 	) {
 
-		let editor_div = this._editor.getDomNode();
+		const editor_div = this._editor.getDomNode();
 		if (editor_div === null) {
 			throw new Error('Cannot find Monaco Editor');
 		}
@@ -434,7 +429,7 @@ class RTVRunButton {
 		this._box.style.display = 'none';
 	}
 
-	public isHidden() : boolean {
+	public isHidden(): boolean {
 		return this._box.style.display === 'none' ||
 			this._box.style.opacity === '0';
 	}
@@ -470,7 +465,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 		// } else {
 		// 	this._displayedVars = new FullVarSet(this);
 		// }
-		let editor_div = this._editor.getDomNode();
+		const editor_div = this._editor.getDomNode();
 		if (editor_div === null) {
 			throw new Error('Cannot find Monaco Editor');
 		}
@@ -499,10 +494,8 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 		this._box.style.fontWeight = fontInfo.fontWeight;
 		this._box.style.fontSize = `${fontInfo.fontSize}px`;
 
-		this._editor.onDidChangeConfiguration((e: ConfigurationChangedEvent) =>
-		{
-			if (e.hasChanged(EditorOption.fontInfo))
-			{
+		this._editor.onDidChangeConfiguration((e: ConfigurationChangedEvent) => {
+			if (e.hasChanged(EditorOption.fontInfo)) {
 				const fontInfo = this._editor.getOption(EditorOption.fontInfo);
 				this._box.style.fontFamily = fontInfo.fontFamily;
 				this._box.style.fontWeight = fontInfo.fontWeight;
@@ -582,7 +575,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 		if (writesAtLine === undefined) {
 			writesAtLine = [];
 		}
-		let result = new Set<string>(writesAtLine);
+		const result = new Set<string>(writesAtLine);
 		if (this._allVars.has('rv')) {
 			result.add('rv');
 		}
@@ -597,8 +590,8 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	}
 
 	public notDisplayedVars() {
-		let result = new Set<string>();
-		let displayed = this._displayedVars;
+		const result = new Set<string>();
+		const displayed = this._displayedVars;
 		this._allVars.forEach((v: string) => {
 			if (!displayed.has(v)) {
 				result.add(v);
@@ -637,7 +630,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 		}
 
 		for (let i = 0; i < envs.length; i++) {
-			let env = envs[i];
+			const env = envs[i];
 
 			if (env['$'] !== loopID) {
 				throw Error('Error');
@@ -649,11 +642,11 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 			}
 
 			if (env['$'] === loopID && env['#'] === iter) {
-				let nexti = i + 1;
+				const nexti = i + 1;
 				if (nexti >= envs.length) {
 					return first;
 				}
-				let nextEnv = envs[nexti];
+				const nextEnv = envs[nexti];
 				if (nextEnv['$'] !== loopID) {
 					throw Error('Error');
 				}
@@ -669,12 +662,12 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	}
 
 	private onClick(e: MouseEvent) {
-		let c = this._controller;
-		let currViewMode = c.viewMode;
+		const c = this._controller;
+		const currViewMode = c.viewMode;
 
-		let viewModes = [ViewMode.Full, ViewMode.CursorAndReturn, ViewMode.Compact, ViewMode.Stealth];
-		let viewModeActions = viewModes.map((v) => {
-			let action = this.newAction(v, () => {
+		const viewModes = [ViewMode.Full, ViewMode.CursorAndReturn, ViewMode.Compact, ViewMode.Stealth];
+		const viewModeActions = viewModes.map((v) => {
+			const action = this.newAction(v, () => {
 				c.changeViewMode(v);
 			});
 			if (currViewMode === v) {
@@ -712,7 +705,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	}
 
 	private isEmptyLine(): boolean {
-		let lineContent = this._controller.getLineContent(this.lineNumber).trim();
+		const lineContent = this._controller.getLineContent(this.lineNumber).trim();
 		if (this.lineNumber > 28) {
 			console.log(lineContent);
 		}
@@ -721,31 +714,31 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 
 	private isCommentLine(): boolean {
 		// hides boxes from top-level comment lines
-		let lineContent = this._controller.getLineContent(this.lineNumber).trim();
+		const lineContent = this._controller.getLineContent(this.lineNumber).trim();
 		return lineContent.trim().startsWith('#');
 	}
 
 	private isConditionalLine(): boolean {
-		let lineContent = this._controller.getLineContent(this.lineNumber).trim();
+		const lineContent = this._controller.getLineContent(this.lineNumber).trim();
 		return lineContent.endsWith(':') &&
 			(lineContent.startsWith('if') ||
 				lineContent.startsWith('else'));
 	}
 
 	private isLoopLine(): boolean {
-		let lineContent = this._controller.getLineContent(this.lineNumber).trim();
+		const lineContent = this._controller.getLineContent(this.lineNumber).trim();
 		return lineContent.endsWith(':') &&
 			(lineContent.startsWith('for') ||
 				lineContent.startsWith('while'));
 	}
 
 	public isBreakLine(): boolean {
-		let lineContent = this._controller.getLineContent(this.lineNumber).trim();
+		const lineContent = this._controller.getLineContent(this.lineNumber).trim();
 		return lineContent.startsWith('break');
 	}
 
 	public isReturnLine(): boolean {
-		let lineContent = this._controller.getLineContent(this.lineNumber).trim();
+		const lineContent = this._controller.getLineContent(this.lineNumber).trim();
 		return lineContent.startsWith('return');
 	}
 
@@ -757,27 +750,27 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	}
 
 	private addMissingLines(envs: any[]): any[] {
-		let last = function <T>(a: T[]): T { return a[a.length - 1]; };
-		let active_loop_iters: number[] = [];
-		let active_loop_ids: string[] = [];
-		let envs2: any[] = [];
+		const last = function <T>(a: T[]): T { return a[a.length - 1]; };
+		const active_loop_iters: number[] = [];
+		const active_loop_ids: string[] = [];
+		const envs2: any[] = [];
 		for (let i = 0; i < envs.length; i++) {
-			let env = envs[i];
+			const env = envs[i];
 			if (env.begin_loop !== undefined) {
 				if (active_loop_iters.length > 0) {
-					let loop_iters: string[] = env.begin_loop.split(',');
+					const loop_iters: string[] = env.begin_loop.split(',');
 					this.bringToLoopCount(envs2, active_loop_iters, last(active_loop_ids), +loop_iters[loop_iters.length - 2]);
 				}
 				active_loop_ids.push(env['$']);
 				active_loop_iters.push(0);
 			} else if (env.end_loop !== undefined) {
-				let loop_iters: string[] = env.end_loop.split(',');
+				const loop_iters: string[] = env.end_loop.split(',');
 				this.bringToLoopCount(envs2, active_loop_iters, last(active_loop_ids), +last(loop_iters));
 				active_loop_ids.pop();
 				active_loop_iters.pop();
 				active_loop_iters[active_loop_iters.length - 1]++;
 			} else {
-				let loop_iters: string[] = env['#'].split(',');
+				const loop_iters: string[] = env['#'].split(',');
 				this.bringToLoopCount(envs2, active_loop_iters, last(active_loop_ids), +last(loop_iters));
 				envs2.push(env);
 				active_loop_iters[active_loop_iters.length - 1]++;
@@ -791,7 +784,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 			return envs;
 		}
 
-		let focusCtrl = this._controller.loopFocusController;
+		const focusCtrl = this._controller.loopFocusController;
 
 		return envs.filter((e, i, a) => focusCtrl.matches(e['$'], e['#']));
 	}
@@ -801,7 +794,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 		if (this._controller.colBorder || elmt.leftBorder) {
 			cell.style.borderLeft = '1px solid #454545';
 		}
-		let padding = this._controller.cellPadding + 'px';
+		const padding = this._controller.cellPadding + 'px';
 		cell.style.paddingLeft = padding;
 		cell.style.paddingRight = padding;
 		cell.style.paddingTop = '0';
@@ -820,7 +813,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	}
 
 	private addCellContent(cell: HTMLTableCellElement, elmt: TableElement, r: MarkdownRenderer, editable: boolean = false) {
-		let s = elmt.content;
+		const s = elmt.content;
 		let cellContent: HTMLElement;
 		if (s === '') {
 			// Make empty strings into a space to make sure it's allocated a space
@@ -833,7 +826,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 			cellContent = document.createElement('div');
 			setInner(cellContent, removeHtmlEscape(s));
 		} else {
-			let renderedText = r.render(new MarkdownString(s));
+			const renderedText = r.render(new MarkdownString(s));
 			cellContent = renderedText.element;
 		}
 
@@ -878,9 +871,9 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	private updateTableByRows(renderer: MarkdownRenderer, rows: TableElement[][]) {
 		for (let colIdx = 0; colIdx < rows[0].length; colIdx++) {
 			for (let rowIdx = 1; rowIdx < rows.length; rowIdx++) {
-				let elmt = rows[rowIdx][colIdx];
+				const elmt = rows[rowIdx][colIdx];
 				// Get the cell
-				let cell = this.getCell(elmt.vname!, rowIdx - 1)!;
+				const cell = this.getCell(elmt.vname!, rowIdx - 1)!;
 				this.addCellContent(cell, elmt, renderer);
 			}
 		}
@@ -897,7 +890,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 			}
 			row.forEach((elmt: TableElement, _colIdx: number) => {
 				// Get the cell
-				let cell = this.getCell(elmt.vname!, rowIdx - 1)!;
+				const cell = this.getCell(elmt.vname!, rowIdx - 1)!;
 				let editable;
 				if (cell !== null) {
 					this.addCellContent(cell, elmt, renderer, editable);
@@ -909,9 +902,9 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 
 	private populateTableByCols(table: HTMLTableElement, renderer: MarkdownRenderer, rows: TableElement[][]) {
 		rows.forEach((row: TableElement[], rowIdx: number) => {
-			let newRow = table.insertRow(-1);
+			const newRow = table.insertRow(-1);
 			row.forEach((elmt: TableElement, colIdx: number) => {
-				let newCell = newRow.insertCell(-1);
+				const newCell = newRow.insertCell(-1);
 
 				// Skip the headers
 				if (rowIdx > 0) {
@@ -926,12 +919,12 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 
 
 	private populateTableByRows(table: HTMLTableElement, renderer: MarkdownRenderer, rows: TableElement[][]) {
-		let tableCellsByLoop = this._controller.tableCellsByLoop;
+		const tableCellsByLoop = this._controller.tableCellsByLoop;
 		for (let colIdx = 0; colIdx < rows[0].length; colIdx++) {
-			let newRow = table.insertRow(-1);
+			const newRow = table.insertRow(-1);
 			for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
-				let elmt = rows[rowIdx][colIdx];
-				let newCell = newRow.insertCell(-1);
+				const elmt = rows[rowIdx][colIdx];
+				const newCell = newRow.insertCell(-1);
 
 				if (rowIdx > 0 && colIdx > 0) {
 					let varname = rows[0][colIdx].content;
@@ -991,7 +984,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 		let envs;
 
 		if (allEnvs) {
-			envs = allEnvs[this.lineNumber-1];
+			envs = allEnvs[this.lineNumber - 1];
 		} else {
 			envs = this._controller.envs[this.lineNumber - 1];
 		}
@@ -1043,7 +1036,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	public updateContent(allEnvs?: any[], updateInPlace?: boolean, outputVars?: string[], prevEnvs?: Map<number, any>) {
 
 		// if computeEnvs returns false, there is no content to display
-		let done =this.computeEnvs(allEnvs);
+		const done = this.computeEnvs(allEnvs);
 		if (done) {
 			return;
 		}
@@ -1072,11 +1065,11 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 			if (!added_loop_vars && env['$'] !== '') {
 				added_loop_vars = true;
 				// env['$'] is a comma-seperated list of line numbers
-				let loop_ids: string[] = env['$'].split(',');
-				loop_ids.forEach( loop_lineno => {
-					let loop_vars = this._controller.writes[loop_lineno];
+				const loop_ids: string[] = env['$'].split(',');
+				loop_ids.forEach(loop_lineno => {
+					const loop_vars = this._controller.writes[loop_lineno];
 					if (loop_vars !== undefined) {
-						loop_vars.forEach( v => {
+						loop_vars.forEach(v => {
 							this._allVars.add(v);
 						});
 					}
@@ -1084,7 +1077,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 			}
 
 			// then add everything else
-			for (let key in env) {
+			for (const key in env) {
 				if (key !== 'prev_lineno' &&
 					key !== 'next_lineno' &&
 					key !== 'lineno' &&
@@ -1108,7 +1101,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 			// It's easier to fix here than to fix in run.py
 			for (const v of startingVars) {
 				if (!this._allVars.has(v)) {
-					startingVars.delete(v)
+					startingVars.delete(v);
 				}
 			}
 		} else {
@@ -1123,7 +1116,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 		}
 
 		let vars = this._deltaVarSet
-			.applyTo(startingVars, this._allVars)
+			.applyTo(startingVars, this._allVars);
 
 		if (prevEnvs) {
 			const oldVars = vars;
@@ -1155,14 +1148,14 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 		}
 
 		// Generate header
-		let rows: TableElement[][] = [];
-		let header: TableElement[] = [];
+		const rows: TableElement[][] = [];
+		const header: TableElement[] = [];
 		vars.forEach((v: string) => {
 			let name = '**' + v + '**';
 			if (outVarNames.includes(v)) {
-				name = '```html\n<strong>' + v + '</strong><sub>in</sub>```'
+				name = '```html\n<strong>' + v + '</strong><sub>in</sub>```';
 			} else {
-				name = '**' + v + '**'
+				name = '**' + v + '**';
 			}
 			header.push(new TableElement(name, 'header', 'header', 0, ''));
 		});
@@ -1174,10 +1167,10 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 
 		// Generate all rows
 		for (let i = 0; i < envs.length; i++) {
-			let env = envs[i];
-			let loopID = env['$'];
-			let iter = env['#'];
-			let row: TableElement[] = [];
+			const env = envs[i];
+			const loopID = env['$'];
+			const iter = env['#'];
+			const row: TableElement[] = [];
 			vars.forEach((v: string) => {
 				let v_str: string;
 				let varName = v;
@@ -1238,7 +1231,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 			this._box.textContent = '';
 
 			// Create html table from rows
-			let table = document.createElement('table');
+			const table = document.createElement('table');
 			table.style.borderSpacing = '0px';
 
 			// TODO Delete me: We do this for the whole box now.
@@ -1265,7 +1258,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 
 	private addStalenessIndicator() {
 		// Add green/red dot to show out of date status
-		let stalenessIndicator = document.createElement('div');
+		const stalenessIndicator = document.createElement('div');
 		stalenessIndicator.style.width = '5px';
 		stalenessIndicator.style.height = '5px';
 		stalenessIndicator.style.position = 'absolute';
@@ -1348,7 +1341,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	}
 
 	private wrapAsVarMenuButton(elmt: HTMLElement, varname: string): HTMLDivElement {
-		let menubar = document.createElement('div');
+		const menubar = document.createElement('div');
 		menubar.className = 'menubar';
 		if (this._controller.byRowOrCol === RowColMode.ByCol) {
 			menubar.style.height = '23px';
@@ -1357,7 +1350,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 		}
 		menubar.appendChild(elmt);
 		elmt.className = 'menubar-menu-button';
-		let c = this._controller;
+		const c = this._controller;
 		elmt.onclick = (e) => {
 			e.stopImmediatePropagation();
 			c.contextMenuService.showContextMenu({
@@ -1384,7 +1377,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	}
 
 	private wrapAsLoopMenuButton(elmt: HTMLElement, iter: string): HTMLDivElement {
-		let menubar = document.createElement('div');
+		const menubar = document.createElement('div');
 		menubar.className = 'menubar';
 		menubar.style.height = '19.5px';
 		// if (this._controller.byRowOrCol === RowColMode.ByCol) {
@@ -1395,7 +1388,7 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 		menubar.appendChild(elmt);
 		elmt.className = 'menubar-menu-button';
 		elmt.style.padding = '0px';
-		let c = this._controller;
+		const c = this._controller;
 		elmt.onclick = (e) => {
 			e.stopImmediatePropagation();
 			c.contextMenuService.showContextMenu({
@@ -1413,13 +1406,13 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	}
 
 	private addPlusButton() {
-		let menubar = document.createElement('div');
+		const menubar = document.createElement('div');
 		menubar.className = 'menubar';
 		menubar.style.height = '23px';
 		menubar.style.position = 'absolute';
 		menubar.style.top = '0px';
 		menubar.style.right = '0px';
-		let addButton = document.createElement('div');
+		const addButton = document.createElement('div');
 		menubar.appendChild(addButton);
 		addButton.className = 'menubar-menu-button';
 		setInner(addButton, '+');
@@ -1437,8 +1430,8 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 
 	}
 
-	private createActionsForPlusMenu(): (IAction )[] {
-		let res: IAction[] = [];
+	private createActionsForPlusMenu(): (IAction)[] {
+		const res: IAction[] = [];
 		this.notDisplayedVars().forEach((v) => {
 			res.push(new SubmenuAction('id', 'Add ' + v, [
 				this.newAction('to This Box', () => {
@@ -1514,26 +1507,26 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	}
 
 	public updateLayout(top: number) {
-		let pixelPosAtLine = this._controller.getLinePixelPos(this.lineNumber);
+		const pixelPosAtLine = this._controller.getLinePixelPos(this.lineNumber);
 
 		let boxTop = top;
 		if (this._controller.boxAlignsToTopOfLine) {
 			boxTop = boxTop - (pixelPosAtLine.height / 2);
 		}
 		//let left = this._controller.maxPixelCol+50;
-		let left = this._controller.maxPixelCol + 130;
-		let zoom_adjusted_left = left - ((1 - this._zoom) * (this._box.offsetWidth / 2));
-		let zoom_adjusted_top = boxTop - ((1 - this._zoom) * (this._box.offsetHeight / 2));
+		const left = this._controller.maxPixelCol + 130;
+		const zoom_adjusted_left = left - ((1 - this._zoom) * (this._box.offsetWidth / 2));
+		const zoom_adjusted_top = boxTop - ((1 - this._zoom) * (this._box.offsetHeight / 2));
 		this._box.style.top = zoom_adjusted_top.toString() + 'px';
 		this._box.style.left = zoom_adjusted_left.toString() + 'px';
 		this._box.style.transform = 'scale(' + this._zoom.toString() + ')';
 		this._box.style.opacity = this._opacity.toString();
 
-		let maxWidth = this._editor.getScrollWidth()-left-10;
+		const maxWidth = this._editor.getScrollWidth() - left - 10;
 		this._box.style.maxWidth = maxWidth.toString() + 'px';
 
 		// update the line
-		let midPointTop = pixelPosAtLine.top + (pixelPosAtLine.height / 2);
+		const midPointTop = pixelPosAtLine.top + (pixelPosAtLine.height / 2);
 
 		//this._line.move(this._controller.maxPixelCol-50, midPointTop, left, top);
 		this._line.move(this._controller.maxPixelCol + 30, midPointTop, left, top);
@@ -1541,15 +1534,15 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	}
 
 	public updateZoomAndOpacity(dist: number, opacityMult: number) {
-		let distAbs = Math.abs(dist);
-		let zoom_upper = 1;
-		let zoom_lower = 1 / (distAbs * 0.5 + 1);
+		const distAbs = Math.abs(dist);
+		const zoom_upper = 1;
+		const zoom_lower = 1 / (distAbs * 0.5 + 1);
 		this._zoom = zoom_lower + (zoom_upper - zoom_lower) * this._controller.zoomLevel;
 
 		this._opacity = 1;
 		if (distAbs !== 0) {
-			let opacity_upper = 1;
-			let opacity_lower = 1 / distAbs;
+			const opacity_upper = 1;
+			const opacity_lower = 1 / distAbs;
 			this._opacity = opacity_lower + (opacity_upper - opacity_lower) * this._controller.opacityLevel;
 		}
 		this._opacity = this._opacity * opacityMult;
@@ -1557,9 +1550,9 @@ export class RTVDisplayBox implements IRTVDisplayBox {
 	}
 
 	public fade() {
-		let oldOpacity = this._box.style.opacity === '' ? '1' : this._box.style.opacity;
+		const oldOpacity = this._box.style.opacity === '' ? '1' : this._box.style.opacity;
 		if (oldOpacity) {
-			let newOpacity = parseFloat(oldOpacity) * 0.9;
+			const newOpacity = parseFloat(oldOpacity) * 0.9;
 			this._box.style.opacity = newOpacity.toString();
 			this._line.setOpacity(newOpacity);
 			this._opacity = newOpacity;
@@ -1599,10 +1592,10 @@ class LoopFocusController {
 	public resetDecorations(addEndToken = false) {
 		this.destroyDecorations();
 		if (this.hasSeed()) {
-			let seedLineno = this.controllingBox.lineNumber;
-			let model = this._controller.getModelForce();
-			let lines = model.getLinesContent();
-			let currIndent = indent(lines[seedLineno - 1]);
+			const seedLineno = this.controllingBox.lineNumber;
+			const model = this._controller.getModelForce();
+			const lines = model.getLinesContent();
+			const currIndent = indent(lines[seedLineno - 1]);
 			let start = seedLineno;
 			function isStillInLoop(s: string) {
 				return isEmpty(s) || indent(s) >= currIndent;
@@ -1615,19 +1608,19 @@ class LoopFocusController {
 				end = end + 1;
 			}
 
-			let range1 = new Range(1, 1, start, model.getLineMaxColumn(start));
-			let maxline = lines.length;
-			let range2 = new Range(end, 1, maxline, model.getLineMaxColumn(maxline));
-			let seedLineContent = lines[seedLineno - 1];
-			let range3 = new Range(seedLineno, indent(seedLineContent) + 1, seedLineno, seedLineContent.length + 1);
+			const range1 = new Range(1, 1, start, model.getLineMaxColumn(start));
+			const maxline = lines.length;
+			const range2 = new Range(end, 1, maxline, model.getLineMaxColumn(maxline));
+			const seedLineContent = lines[seedLineno - 1];
+			const range3 = new Range(seedLineno, indent(seedLineContent) + 1, seedLineno, seedLineContent.length + 1);
 			this._decoration1 = this._controller.addDecoration(range1, { description: 'PB Loop Focus', inlineClassName: 'rtv-code-fade' });
 			this._decoration2 = this._controller.addDecoration(range2, { description: 'PB Loop Focus', inlineClassName: 'rtv-code-fade' });
 			this._decoration3 = this._controller.addDecoration(range3, { description: 'PB Loop Focus', className: 'squiggly-info' });
 
-			let endToken = '## END LOOP';
+			const endToken = '## END LOOP';
 			if (addEndToken && !lines[end - 2].endsWith(endToken)) {
-				let endCol = model.getLineMaxColumn(end - 1);
-				let range4 = new Range(end - 1, endCol, end - 1, endCol);
+				const endCol = model.getLineMaxColumn(end - 1);
+				const range4 = new Range(end - 1, endCol, end - 1, endCol);
 				this._controller.executeEdits([{ range: range4, text: '\n' + seedLineContent.substr(0, currIndent) + endToken }]);
 			}
 		}
@@ -1650,12 +1643,12 @@ class LoopFocusController {
 	}
 
 	public matchesIter(otherIter: string): boolean {
-		let otherIterArr = strNumsToArray(otherIter);
+		const otherIterArr = strNumsToArray(otherIter);
 		return arrayStartsWith(otherIterArr, this._iterArr);
 	}
 
 	public matchesID(otherLoopID: string): boolean {
-		let otherLoopsLinenoArr = strNumsToArray(otherLoopID);
+		const otherLoopsLinenoArr = strNumsToArray(otherLoopID);
 		return arrayStartsWith(otherLoopsLinenoArr, this._loopIDArr);
 	}
 
@@ -1692,8 +1685,8 @@ function visibilityCursorAndReturn(b: RTVDisplayBox, cursorLineNumber: number) {
 // }
 
 export class RTVController implements IRTVController {
-	public envs: { [k: string]: any[]; } = {};
-	public writes: { [k: string]: string[]; } = {};
+	public envs: { [k: string]: any[] } = {};
+	public writes: { [k: string]: string[] } = {};
 	public changedLinesWhenOutOfDate?: Set<number> = undefined;
 	public _configBox: HTMLDivElement | null = null;
 	public tableCellsByLoop: MapLoopsToCells = {};
@@ -1715,7 +1708,7 @@ export class RTVController implements IRTVController {
 	private _peekTimer: ReturnType<typeof setTimeout> | null = null;
 	private _globalDeltaVarSet: DeltaVarSet = new DeltaVarSet();
 	private _showErrorDelay: DelayedRunAtMostOne = new DelayedRunAtMostOne();
-	private _outputBox: RTVOutputDisplayBox| null = null;
+	private _outputBox: RTVOutputDisplayBox | null = null;
 	private _runButton: RTVRunButton | null = null;
 	// private _synthesis: RTVSynth;
 	private _synthesis: RTVSynthController;
@@ -1966,7 +1959,7 @@ export class RTVController implements IRTVController {
 	}
 
 	public getModelForce(): ITextModel {
-		let model = this._editor.getModel();
+		const model = this._editor.getModel();
 		if (model === null) {
 			throw Error('Expecting a model');
 		}
@@ -1974,7 +1967,7 @@ export class RTVController implements IRTVController {
 	}
 
 	private getLineCount(): number {
-		let model = this._editor.getModel();
+		const model = this._editor.getModel();
 		if (model === null) {
 			return 0;
 		}
@@ -1982,7 +1975,7 @@ export class RTVController implements IRTVController {
 	}
 
 	public getLineContent(lineNumber: number): string {
-		let model = this._editor.getModel();
+		const model = this._editor.getModel();
 		if (model === null) {
 			return '';
 		}
@@ -1990,12 +1983,12 @@ export class RTVController implements IRTVController {
 	}
 
 	private getCWD(): string | undefined {
-		let model = this.getModelForce();
-		let uri = model.uri;
+		const model = this.getModelForce();
+		const uri = model.uri;
 		if (uri.scheme !== 'file') {
 			return undefined;
 		} else {
-			let p = uri.fsPath;
+			const p = uri.fsPath;
 			return p.substring(0, p.lastIndexOf(path.sep));
 		}
 	}
@@ -2018,19 +2011,19 @@ export class RTVController implements IRTVController {
 	// }
 
 	private updateMaxPixelCol() {
-		let model = this._editor.getModel();
+		const model = this._editor.getModel();
 		if (model === null) {
 			return;
 		}
 		let max = 0;
-		let lineCount = model.getLineCount();
+		const lineCount = model.getLineCount();
 		for (let line = 1; line <= lineCount; line++) {
-			let s = model.getLineContent(line);
+			const s = model.getLineContent(line);
 			if (s.length > 0 && s[0] === '#') {
 				continue;
 			}
-			let col = model.getLineMaxColumn(line);
-			let pixelPos = this._editor.getScrolledVisiblePosition(new Position(line, col));
+			const col = model.getLineMaxColumn(line);
+			const pixelPos = this._editor.getScrolledVisiblePosition(new Position(line, col));
 			if (pixelPos !== null && pixelPos.left > max) {
 				max = pixelPos.left;
 			}
@@ -2046,11 +2039,11 @@ export class RTVController implements IRTVController {
 	}
 
 	public addConfigDialogBox() {
-		let editor_div = this._editor.getDomNode();
+		const editor_div = this._editor.getDomNode();
 		if (!editor_div) {
 			return;
 		}
-		let div = document.createElement('div');
+		const div = document.createElement('div');
 		div.textContent = '';
 		div.style.position = 'absolute';
 		div.style.top = '200px';
@@ -2101,25 +2094,25 @@ export class RTVController implements IRTVController {
 		column.style.padding = '5px';
 		div.appendChild(column);*/
 
-		let row = document.createElement('input');
+		const row = document.createElement('input');
 		row.type = 'radio';
 		row.name = 'row-or-col';
 		row.value = 'row';
 		row.textContent = 'Row';
 
-		let rowText = document.createElement('label');
+		const rowText = document.createElement('label');
 		rowText.innerText = 'Row';
 
 		div.appendChild(row);
 		div.appendChild(rowText);
 		div.appendChild(document.createElement('br'));
 
-		let col = document.createElement('input');
+		const col = document.createElement('input');
 		col.type = 'radio';
 		col.name = 'row-or-col';
 		col.value = 'col';
 
-		let colText = document.createElement('label');
+		const colText = document.createElement('label');
 		colText.innerText = 'Col';
 		div.appendChild(col);
 		div.appendChild(colText);
@@ -2151,7 +2144,7 @@ export class RTVController implements IRTVController {
 	}
 
 	public getBox(lineNumber: number): RTVDisplayBox {
-		let i = lineNumber - 1;
+		const i = lineNumber - 1;
 		if (i >= this._boxes.length) {
 			for (let j = this._boxes.length; j <= i; j++) {
 				this._boxes[j] = new RTVDisplayBox(this, this._editor, this._langService, this._openerService, j + 1, this._globalDeltaVarSet);
@@ -2204,7 +2197,7 @@ export class RTVController implements IRTVController {
 	}
 
 	public getBoxAtCurrLine() {
-		let cursorPos = this._editor.getPosition();
+		const cursorPos = this._editor.getPosition();
 		if (cursorPos === null) {
 			throw new Error('No position to get box at');
 		}
@@ -2213,7 +2206,7 @@ export class RTVController implements IRTVController {
 	}
 
 	private padBoxArray() {
-		let lineCount = this.getLineCount();
+		const lineCount = this.getLineCount();
 		if (lineCount > this._boxes.length) {
 			for (let j = this._boxes.length; j < lineCount; j++) {
 				this._boxes[j] = new RTVDisplayBox(this, this._editor, this._langService, this._openerService, j + 1, this._globalDeltaVarSet);
@@ -2270,14 +2263,14 @@ export class RTVController implements IRTVController {
 		this.updateMaxPixelCol();
 		await this.updateBoxes(e);
 
-		let cursorPos = this._editor.getPosition();
+		const cursorPos = this._editor.getPosition();
 		if (cursorPos === null) {
 			return;
 		}
-		let lineno = cursorPos.lineNumber;
+		const lineno = cursorPos.lineNumber;
 		if (e.changes.length > 0) {
-			let range = e.changes[0].range;
-			let lineCount = this.getLineCount();
+			const range = e.changes[0].range;
+			const lineCount = this.getLineCount();
 			for (let i = range.startLineNumber; i <= range.endLineNumber; i++) {
 				if (i <= lineCount && i === lineno) {
 					if (isSeedLine(this.getLineContent(i))) {
@@ -2288,13 +2281,13 @@ export class RTVController implements IRTVController {
 
 						if (lineContent.endsWith('??') &&
 							(lineContent.startsWith('return ') || lineContent.split('=').length === 2)) {
-								this._synthesis.startSynthesis(i)
-									.catch((e) => {
-										console.error('Synthesis failed with exception:');
-										console.error(e);
-										this._synthesis.stopSynthesis();
-									});
-								return;
+							this._synthesis.startSynthesis(i)
+								.catch((e) => {
+									console.error('Synthesis failed with exception:');
+									console.error(e);
+									this._synthesis.stopSynthesis();
+								});
+							return;
 						}
 					}
 				}
@@ -2312,13 +2305,13 @@ export class RTVController implements IRTVController {
 
 		// Compute set of loop iterations
 		let loops: string[] = [];
-		for (let loop in this.tableCellsByLoop) {
+		for (const loop in this.tableCellsByLoop) {
 			loops.push(loop);
 		}
 		// sort by deeper iterations first
 		loops = loops.sort((a, b) => b.split(',').length - a.split(',').length);
 
-		let widths: { [k: string]: number; } = {};
+		const widths: { [k: string]: number } = {};
 		loops.forEach((loop: string) => {
 			widths[loop] = Math.max(...this.tableCellsByLoop[loop].map(e => e.offsetWidth));
 			//console.log('Max for ' + loop + ' :' + widths[loop]);
@@ -2330,9 +2323,9 @@ export class RTVController implements IRTVController {
 		}
 		for (let i = 1; i < loops.length; i++) {
 			let width = 0;
-			let parent_loop = loops[i];
+			const parent_loop = loops[i];
 			for (let j = 0; j < i; j++) {
-				let child_loop = loops[j];
+				const child_loop = loops[j];
 				if (child_loop.split(',').length === 1 + parent_loop.split(',').length &&
 					child_loop.startsWith(parent_loop)) {
 					width = width + widths[child_loop];
@@ -2382,7 +2375,7 @@ export class RTVController implements IRTVController {
 	private updateLayoutHelper(toProcess: (b: RTVDisplayBox) => boolean, opacityMult: number) {
 		this.padBoxArray();
 
-		let cursorPos = this._editor.getPosition();
+		const cursorPos = this._editor.getPosition();
 		if (cursorPos === null) {
 			return;
 		}
@@ -2392,7 +2385,7 @@ export class RTVController implements IRTVController {
 		let focusedLine = 0;
 		for (let line = 1; line <= this.getLineCount(); line++) {
 			if (toProcess(this.getBox(line))) {
-				let dist = Math.abs(cursorPos.lineNumber - line);
+				const dist = Math.abs(cursorPos.lineNumber - line);
 				if (dist < minDist) {
 					minDist = dist;
 					focusedLine = line;
@@ -2406,7 +2399,7 @@ export class RTVController implements IRTVController {
 
 		// compute distances from focused line, ignoring hidden lines.
 		// Start from focused line and go outward.
-		let distancesFromFocus: number[] = new Array(this._boxes.length);
+		const distancesFromFocus: number[] = new Array(this._boxes.length);
 		let dist = 0;
 		for (let line = focusedLine; line >= 1; line--) {
 			if (toProcess(this.getBox(line))) {
@@ -2423,7 +2416,7 @@ export class RTVController implements IRTVController {
 		}
 
 		for (let line = 1; line <= this.getLineCount(); line++) {
-			let box = this.getBox(line);
+			const box = this.getBox(line);
 			if (toProcess(this.getBox(line))) {
 				box.updateZoomAndOpacity(distancesFromFocus[line - 1], opacityMult);
 			}
@@ -2434,23 +2427,23 @@ export class RTVController implements IRTVController {
 		// 	return;
 		// }
 
-		let focusedLinePixelPos = this._editor.getScrolledVisiblePosition(new Position(focusedLine, 1));
-		let nextLinePixelPos = this._editor.getScrolledVisiblePosition(new Position(focusedLine + 1, 1));
+		const focusedLinePixelPos = this._editor.getScrolledVisiblePosition(new Position(focusedLine, 1));
+		const nextLinePixelPos = this._editor.getScrolledVisiblePosition(new Position(focusedLine + 1, 1));
 		if (focusedLinePixelPos === null || nextLinePixelPos === null) {
 			return;
 		}
 
-		let spaceBetweenBoxes = this.spaceBetweenBoxes;
+		const spaceBetweenBoxes = this.spaceBetweenBoxes;
 		// let top_start = focusedLinePixelPos.top + (focusedLinePixelPos.height / 2);
 		//let top_start = (focusedLinePixelPos.top + nextLinePixelPos.top) / 2;
 		//let top_start = focusedLinePixelPos.top;
-		let top_start = this.getLinePixelMid(focusedLine);
+		const top_start = this.getLinePixelMid(focusedLine);
 		let top = top_start;
 		for (let line = focusedLine - 1; line >= 1; line--) {
-			let box = this.getBox(line);
+			const box = this.getBox(line);
 			if (toProcess(box)) {
 				top = top - spaceBetweenBoxes - box.getHeight();
-				let lineMidPoint = this.getLinePixelMid(line);
+				const lineMidPoint = this.getLinePixelMid(line);
 				if (lineMidPoint < top) {
 					top = lineMidPoint;
 				}
@@ -2459,9 +2452,9 @@ export class RTVController implements IRTVController {
 		}
 		top = top_start;
 		for (let line = focusedLine; line <= this.getLineCount(); line++) {
-			let box = this.getBox(line);
+			const box = this.getBox(line);
 			if (toProcess(box)) {
-				let lineMidPoint = this.getLinePixelMid(line);
+				const lineMidPoint = this.getLinePixelMid(line);
 				if (lineMidPoint > top) {
 					top = lineMidPoint;
 				}
@@ -2473,17 +2466,17 @@ export class RTVController implements IRTVController {
 	}
 
 	private updateLayout() {
-		let cursorPos = this._editor.getPosition();
+		const cursorPos = this._editor.getPosition();
 		if (cursorPos === null) {
 			return;
 		}
-		let curr = cursorPos.lineNumber;
+		const curr = cursorPos.lineNumber;
 		this.updateLayoutHelper(b => b.hasContent(), 0);
 		this.updateLayoutHelper(b => b.hasContent() && this._visibilityPolicy(b, curr), 1);
 		return;
 	}
 
-	public getLinePixelPos(line: number): { top: number; left: number; height: number; } {
+	public getLinePixelPos(line: number): { top: number; left: number; height: number } {
 		// let result = this._editor.getScrolledVisiblePosition(new Position(line, 1));
 		// if (result === null) {
 		// 	throw new Error();
@@ -2492,8 +2485,8 @@ export class RTVController implements IRTVController {
 		return this.getLineColPixelPos(new Position(line, 1));
 	}
 
-	public getLineColPixelPos(position: IPosition): { top: number; left: number; height: number; } {
-		let result = this._editor.getScrolledVisiblePosition(position);
+	public getLineColPixelPos(position: IPosition): { top: number; left: number; height: number } {
+		const result = this._editor.getScrolledVisiblePosition(position);
 		if (result === null) {
 			throw new Error();
 		}
@@ -2501,19 +2494,19 @@ export class RTVController implements IRTVController {
 	}
 
 	public getLinePixelMid(line: number): number {
-		let pixelPos = this.getLinePixelPos(line);
+		const pixelPos = this.getLinePixelPos(line);
 		return pixelPos.top + (pixelPos.height / 2);
 	}
 
 	private updatePrevModel() {
-		let model = this._editor.getModel();
+		const model = this._editor.getModel();
 		if (model !== null) {
 			this._prevModel = model.getLinesContent().map((x) => x);
 		}
 	}
 
 	public lastNonWhitespaceCol(lineNumber: number, lines?: string[]): number {
-		let line = (lines === undefined) ? this.getLineContent(lineNumber) : lines[lineNumber - 1];
+		const line = (lines === undefined) ? this.getLineContent(lineNumber) : lines[lineNumber - 1];
 		const result = strings.lastNonWhitespaceIndex(line);
 		if (result === -1) {
 			return 0;
@@ -2522,7 +2515,7 @@ export class RTVController implements IRTVController {
 	}
 
 	public firstNonWhitespaceCol(lineNumber: number, lines?: string[]): number {
-		let line = (lines === undefined) ? this.getLineContent(lineNumber) : lines[lineNumber - 1];
+		const line = (lines === undefined) ? this.getLineContent(lineNumber) : lines[lineNumber - 1];
 		const result = strings.firstNonWhitespaceIndex(line);
 		if (result === -1) {
 			return 0;
@@ -2535,26 +2528,26 @@ export class RTVController implements IRTVController {
 			this.updatePrevModel();
 			return;
 		}
-		let orig = this._boxes;
-		let changes = e.changes.sort((a, b) => Range.compareRangesUsingStarts(a.range, b.range));
+		const orig = this._boxes;
+		const changes = e.changes.sort((a, b) => Range.compareRangesUsingStarts(a.range, b.range));
 		let changeIdx = 0;
 		let origIdx = 0;
 		let i = 0;
 		this._boxes = [];
-		let lineCount = this.getLineCount();
+		const lineCount = this.getLineCount();
 		while (i < lineCount) {
 			if (changeIdx >= changes.length) {
 				this._boxes[i++] = orig[origIdx++];
 				this._boxes[i - 1].lineNumber = i;
 			} else {
-				let line = i + 1;
-				let change = changes[changeIdx];
-				let numAddedLines = change.text.split('\n').length - 1;
-				let changeStartLine = change.range.startLineNumber;
-				let changeEndLine = change.range.endLineNumber;
-				let numRemovedLines = changeEndLine - changeStartLine;
-				let deltaNumLines = numAddedLines - numRemovedLines;
-				let changeStartCol = change.range.startColumn;
+				const line = i + 1;
+				const change = changes[changeIdx];
+				const numAddedLines = change.text.split('\n').length - 1;
+				const changeStartLine = change.range.startLineNumber;
+				const changeEndLine = change.range.endLineNumber;
+				const numRemovedLines = changeEndLine - changeStartLine;
+				const deltaNumLines = numAddedLines - numRemovedLines;
+				const changeStartCol = change.range.startColumn;
 				if ((deltaNumLines <= 0 && changeStartLine === line) ||
 					(deltaNumLines > 0 && ((changeStartLine === line && changeStartCol < this.lastNonWhitespaceCol(line, this._prevModel)) ||
 						(changeStartLine === line - 1 && changeStartCol >= this.lastNonWhitespaceCol(line - 1, this._prevModel))))) {
@@ -2563,7 +2556,7 @@ export class RTVController implements IRTVController {
 						// nothing to do
 					} else if (deltaNumLines > 0) {
 						for (let j = 0; j < deltaNumLines; j++) {
-							let new_box = new RTVDisplayBox(this, this._editor, this._langService, this._openerService, i + 1, this._globalDeltaVarSet);
+							const new_box = new RTVDisplayBox(this, this._editor, this._langService, this._openerService, i + 1, this._globalDeltaVarSet);
 							if (!this._makeNewBoxesVisible) {
 								new_box.varRemoveAll();
 							}
@@ -2605,7 +2598,7 @@ export class RTVController implements IRTVController {
 			this.clearError();
 			this.showError(errorMsg);
 		})
-		.catch((_err) => {});
+			.catch((_err) => { });
 	}
 
 	private showError(errorMsg: string) {
@@ -2627,11 +2620,11 @@ export class RTVController implements IRTVController {
 		let colStart = 0;
 		let colEnd = 0;
 
-		let errorLines = errorMsg.split(this.utils.EOL);
+		const errorLines = errorMsg.split(this.utils.EOL);
 		errorLines.pop(); // last element is empty line
 
 		// The error description is always the last line
-		let description = errorLines.pop();
+		const description = errorLines.pop();
 		if (description === undefined) {
 			return;
 		}
@@ -2642,7 +2635,7 @@ export class RTVController implements IRTVController {
 		if (lineno === undefined) {
 			return;
 		}
-		let linenoRE = 'line ([0-9]*)';
+		const linenoRE = 'line ([0-9]*)';
 		let match = lineno.match(linenoRE);
 
 		if (match !== null) {
@@ -2661,7 +2654,7 @@ export class RTVController implements IRTVController {
 		} else {
 			// No line number here so this is a syntax error, so we in fact
 			// didn't get the error line number, we got the line with the caret
-			let caret = lineno;
+			const caret = lineno;
 
 			let caretIndex = caret.indexOf('^');
 			if (caretIndex === -1) {
@@ -2700,8 +2693,8 @@ export class RTVController implements IRTVController {
 			colEnd = colEnd + 1;
 
 		}
-		let range = new Range(lineNumber, colStart, lineNumber, colEnd);
-		let options = { description: description, className: 'squiggly-error', hoverMessage: new MarkdownString(description) };
+		const range = new Range(lineNumber, colStart, lineNumber, colEnd);
+		const options = { description: description, className: 'squiggly-error', hoverMessage: new MarkdownString(description) };
 		this._errorDecorationID = this.addDecoration(range, options);
 	}
 
@@ -2714,7 +2707,7 @@ export class RTVController implements IRTVController {
 	}
 
 	public getProgram(): string {
-		let lines = this.getModelForce().getLinesContent();
+		const lines = this.getModelForce().getLinesContent();
 		this.removeSeeds(lines);
 		return lines.join('\n');
 	}
@@ -2729,7 +2722,7 @@ export class RTVController implements IRTVController {
 		this.logger.projectionBoxUpdateStart(program);
 		this.pythonProcess = this.utils.runProgram(program, this.getCWD());
 
-		let runResults: RunResult = await this.pythonProcess;
+		const runResults: RunResult = await this.pythonProcess;
 		const outputMsg = runResults.stdout;
 		const errorMsg = runResults.stderr;
 		const exitCode = runResults.exitCode;
@@ -2768,7 +2761,7 @@ export class RTVController implements IRTVController {
 			// In this case, we will be either removing or adding projection boxes,
 			// and we want to process this change immediately.
 			for (let i = 0; i < e.changes.length; i++) {
-				let change = e.changes[i];
+				const change = e.changes[i];
 				if (change.range.endLineNumber - change.range.startLineNumber > 0) {
 					return true;
 				}
@@ -2795,7 +2788,7 @@ export class RTVController implements IRTVController {
 
 		try {
 			// Just delay
-			await this.runProgramDelay.run(delay, async () => {});
+			await this.runProgramDelay.run(delay, async () => { });
 		} catch (_err) {
 			// The timer was cancelled. Just return.
 			this._eventEmitter.fire(new BoxUpdateEvent(false, true, false));
@@ -2806,8 +2799,8 @@ export class RTVController implements IRTVController {
 
 		this.hideOutputBox();
 
-		let [outputMsg, errorMsg, parsedResult] = await this.runProgram();
-		let returnCode = parsedResult[0];
+		const [outputMsg, errorMsg, parsedResult] = await this.runProgram();
+		const returnCode = parsedResult[0];
 
 		this.updateMaxPixelCol();
 		this.updateLinesWhenOutOfDate(returnCode, e);
@@ -2855,9 +2848,9 @@ export class RTVController implements IRTVController {
 			rs = await this.runProgram();
 		}
 
-		let errorMsg = rs[1];
-		let parsedResult = rs[2];
-		let returnCode = parsedResult[0];
+		const errorMsg = rs[1];
+		const parsedResult = rs[2];
+		const returnCode = parsedResult[0];
 
 		this.updateLinesWhenOutOfDate(returnCode, e);
 
@@ -2882,7 +2875,7 @@ export class RTVController implements IRTVController {
 
 	public getEnvAtNextTimeStep(env: any): any | null {
 		let result: any | null = null;
-		let nextEnvs = this.envs[env.next_lineno];
+		const nextEnvs = this.envs[env.next_lineno];
 		if (nextEnvs !== undefined) {
 			nextEnvs.forEach((nextEnv) => {
 				if (nextEnv.time === env.time + 1) {
@@ -2902,7 +2895,7 @@ export class RTVController implements IRTVController {
 	}
 
 	public varRemoveInAllBoxes(varname: string) {
-		let removed = new Set<string>();
+		const removed = new Set<string>();
 		this._boxes.forEach((box) => {
 			box.varRemove(varname, removed);
 		});
@@ -2918,8 +2911,8 @@ export class RTVController implements IRTVController {
 	}
 
 	public varKeepOnlyInAllBoxes(varname: string) {
-		let removed = new Set<string>();
-		let added = new Set<string>();
+		const removed = new Set<string>();
+		const added = new Set<string>();
 		this._boxes.forEach((box) => {
 			box.varKeepOnly(varname, added, removed);
 		});
@@ -2938,7 +2931,7 @@ export class RTVController implements IRTVController {
 	}
 
 	public varAddInAllBoxes(regExp: string) {
-		let added = new Set<string>();
+		const added = new Set<string>();
 		this._boxes.forEach((box) => {
 			box.varAdd(regExp, added);
 		});
@@ -3076,7 +3069,7 @@ export class RTVController implements IRTVController {
 		}
 
 		this.viewMode = m;
-		let editor_div = this._editor.getDomNode();
+		const editor_div = this._editor.getDomNode();
 		if (editor_div !== null && this.isTextEditor()) {
 			this.hideOutputBox();
 			this.getRunButton().setButtonToRun();
@@ -3169,7 +3162,7 @@ export class RTVController implements IRTVController {
 			if (where === ChangeVarsWhere.All) {
 				text = text + '@' + ChangeVarsWhere.All;
 			}
-			let varNameText = '<VarNameRegExp>';
+			const varNameText = '<VarNameRegExp>';
 			text = text + ' ' + varNameText;
 
 			selectionEnd = text.length;
@@ -3186,25 +3179,25 @@ export class RTVController implements IRTVController {
 	}
 
 	private getUserInputAndDo(value: string, selectionStart: number, selectionEnd: number, onEnter: (n: string) => void) {
-		let cursorPos = this._editor.getPosition();
+		const cursorPos = this._editor.getPosition();
 		if (cursorPos === null) {
 			return;
 		}
 
-		let pixelPos = this.getLineColPixelPos(cursorPos);
+		const pixelPos = this.getLineColPixelPos(cursorPos);
 		//let range = new Range(cursorPos.lineNumber-1, cursorPos.column, cursorPos.lineNumber-1, cursorPos.column + 40);
 
-		let editor_div = this._editor.getDomNode();
+		const editor_div = this._editor.getDomNode();
 		if (editor_div === null) {
 			throw new Error('Cannot find Monaco Editor');
 		}
 
 		// The following code is adapted from getDomNode in the RenameInputField class
-		let domNode = document.createElement('div');
+		const domNode = document.createElement('div');
 
 		domNode.className = 'monaco-editor rename-box';
 
-		let input = document.createElement('input');
+		const input = document.createElement('input');
 		input.className = 'rename-input';
 		input.type = 'text';
 		input.setAttribute('aria-label', localize('renameAriaLabel', 'Rename input. Type new name and press Enter to commit.'));
@@ -3219,7 +3212,7 @@ export class RTVController implements IRTVController {
 		input.selectionEnd = selectionEnd;
 		input.size = value.length;
 
-		let theme = this._themeService.getColorTheme();
+		const theme = this._themeService.getColorTheme();
 		const widgetShadowColor = theme.getColor(widgetShadow);
 		domNode.style.backgroundColor = String(theme.getColor(editorWidgetBackground) ?? '');
 		domNode.style.boxShadow = widgetShadowColor ? ` 0 2px 8px ${widgetShadowColor}` : '';
@@ -3257,10 +3250,10 @@ export class RTVController implements IRTVController {
 	}
 
 	private runChangeVarsCommand(cmd: string) {
-		let a = cmd.split(/[ ]+/);
+		const a = cmd.split(/[ ]+/);
 		if (a.length === 2) {
-			let op = a[0].trim();
-			let varName = a[1].trim();
+			const op = a[0].trim();
+			const varName = a[1].trim();
 			switch (op) {
 				case ChangeVarsOp.Add:
 					this.varAddInThisBox(varName, this.getBoxAtCurrLine());
@@ -3286,7 +3279,7 @@ export class RTVController implements IRTVController {
 	}
 
 	public setVisiblityToSelectionOnly() {
-		let selection = this._editor.getSelection();
+		const selection = this._editor.getSelection();
 		if (selection === null) {
 			return;
 		}
@@ -3296,7 +3289,7 @@ export class RTVController implements IRTVController {
 	}
 
 	private onMouseWheel(e: IMouseWheelEvent) {
-		let outputBox = this.getOutputBox();
+		const outputBox = this.getOutputBox();
 		if (!(outputBox.isHidden()) && outputBox.mouseOnDiv()) {
 			e.stopImmediatePropagation();
 			return;
@@ -3373,9 +3366,9 @@ export class RTVController implements IRTVController {
 
 	public scrollLoopFocusIter(deltaY: number) {
 		if (this.loopFocusController !== null) {
-			let iter = this.loopFocusController.iter;
-			let box = this.loopFocusController.controllingBox;
-			let nextIter = box.getNextLoopIter(box.getLoopID(), iter, deltaY);
+			const iter = this.loopFocusController.iter;
+			const box = this.loopFocusController.controllingBox;
+			const nextIter = box.getNextLoopIter(box.getLoopID(), iter, deltaY);
 			this.loopFocusController = new LoopFocusController(this, box, nextIter);
 		}
 	}
@@ -3384,14 +3377,14 @@ export class RTVController implements IRTVController {
 		let minIndent = Infinity;
 		let i = currLineNumber;
 		while (i >= 1) {
-			let currLine = lines[i - 1];
+			const currLine = lines[i - 1];
 			if (isSeedLine(currLine)) {
 				if (indent(currLine) <= minIndent) {
 					return i;
 				}
 			}
 			if (isLoopStr(currLine)) {
-				let currIndent = indent(currLine);
+				const currIndent = indent(currLine);
 				if (currIndent < minIndent) {
 					minIndent = currIndent;
 				}
@@ -3402,16 +3395,16 @@ export class RTVController implements IRTVController {
 	}
 
 	public focusOnLoopWithSeed() {
-		let cursorPos = this._editor.getPosition();
+		const cursorPos = this._editor.getPosition();
 		if (cursorPos === null) {
 			return;
 		}
-		let lines = this.getModelForce().getLinesContent();
-		let seed = this.findSeed(lines, cursorPos.lineNumber);
+		const lines = this.getModelForce().getLinesContent();
+		const seed = this.findSeed(lines, cursorPos.lineNumber);
 		if (seed === 0) {
 			this.focusOnLoopAtCurrLine();
 		} else {
-			let seedBox = this.getBox(seed);
+			const seedBox = this.getBox(seed);
 			this.focusOnLoopAtBox(seedBox);
 		}
 	}
@@ -3581,7 +3574,7 @@ Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfigurat
 
 
 class ConfigurationServiceCache {
-	private _vals: { [k: string]: any; } = {};
+	private _vals: { [k: string]: any } = {};
 	public onDidUserChangeConfiguration: ((e: IConfigurationChangeEvent) => void) | undefined = undefined;
 	constructor(private readonly configurationService: IConfigurationService) {
 		this.configurationService.onDidChangeConfiguration((e) => { this.onChangeConfiguration(e); });
@@ -3614,7 +3607,7 @@ class ConfigurationServiceCache {
 	private onChangeConfiguration(e: IConfigurationChangeEvent) {
 		e.affectedKeys.forEach((key: string) => {
 			if (key.startsWith('rtv')) {
-				let v = this.configurationService.getValue(key);
+				const v = this.configurationService.getValue(key);
 				if (v !== this._vals[key]) {
 					this._vals[key] = v;
 					if (this.onDidUserChangeConfiguration !== undefined) {
@@ -3632,8 +3625,6 @@ function createRTVAction(id: string, name: string, key: number, label: string, c
 		constructor() {
 			super({
 				id: id,
-				// eslint complains that we shouldn't call `localize` with a non-literal argument.
-				// eslint-disable-next-line code-no-unexternalized-strings
 				label: label,
 				alias: name,
 				precondition: undefined,
@@ -3652,7 +3643,7 @@ function createRTVAction(id: string, name: string, key: number, label: string, c
 			this._callback = callback;
 		}
 		public run(accessor: ServicesAccessor, editor: ICodeEditor): void {
-			let controller = RTVController.get(editor);
+			const controller = RTVController.get(editor);
 			if (controller) {
 				this._callback(controller);
 			}

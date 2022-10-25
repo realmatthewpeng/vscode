@@ -331,7 +331,7 @@
 							"vs/base/parts/*/~",
 							"vs/platform/*/~",
 							"tas-client-umd", // node module allowed even in /common/
-							"@microsoft/1ds-core-js",// node module allowed even in /common/
+							"@microsoft/1ds-core-js", // node module allowed even in /common/
 							"@microsoft/1ds-post-js" // node module allowed even in /common/
 						]
 					},
@@ -630,6 +630,15 @@
 						]
 					}
 				]
+			}
+		},
+		{
+			"files": [
+				"**/rtv/browser/**"
+			],
+			"rules": {
+				"header/header": "off",
+				"local/code-import-patterns": "off"
 			}
 		}
 	]

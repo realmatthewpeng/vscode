@@ -1,20 +1,20 @@
-import { TableElement, isHtmlEscape } from 'vs/editor/contrib/rtv/RTVUtils';
+import { TableElement, isHtmlEscape } from 'vs/editor/contrib/rtv/browser/RTVUtils';
 
 class CursorPos {
-	constructor (
+	constructor(
 		public node?: HTMLElement,
 		public startPos?: number,
 		public endPos?: number,
 		public collapsed?: boolean,
 		public row: number = 0
-	) {}
+	) { }
 }
 
 export class RTVSynthModel {
 
 	private _allEnvs: any[] = [];
 	private _prevEnvs?: Map<number, any>;
-	private _boxEnvs: {[k: string]: any}[] = [];
+	private _boxEnvs: { [k: string]: any }[] = [];
 	private _boxVars: Set<string> = new Set<string>();
 	private _lineNumber: number;
 	private _rowsValid: boolean[] = [];
@@ -22,7 +22,7 @@ export class RTVSynthModel {
 	private _outputVars: string[];
 	private _rows?: TableElement[][];
 	private _cellElements?: Map<string, HTMLTableCellElement[]>;
-	private _cursorPos: CursorPos
+	private _cursorPos: CursorPos;
 	onBoxContentChanged?: (rows: TableElement[][], init?: boolean) => void;
 
 	constructor(
@@ -36,7 +36,7 @@ export class RTVSynthModel {
 		this._cursorPos = new CursorPos(undefined, undefined, undefined, undefined, 0);
 	}
 
-	get boxEnvs(): {[k: string]: [v: any]}[] {
+	get boxEnvs(): { [k: string]: [v: any] }[] {
 		return this._boxEnvs;
 	}
 
@@ -64,7 +64,7 @@ export class RTVSynthModel {
 		return this._cursorPos.node!;
 	}
 
-	public updateBoxContent(newEnvs: {[k: string] : [v: {[k1: string]: any}]}, init: boolean = false) {
+	public updateBoxContent(newEnvs: { [k: string]: [v: { [k1: string]: any }] }, init: boolean = false) {
 		this.updateBoxEnvs(newEnvs);
 		this.updateRowsValid();
 		this._commit(init);
@@ -82,7 +82,7 @@ export class RTVSynthModel {
 		}
 
 		this._allEnvs = [];
-		for (let line in (runResults[2] as { [k: string]: any[]; })) {
+		for (const line in (runResults[2] as { [k: string]: any[] })) {
 			this._allEnvs = this._allEnvs.concat(runResults[2][line]);
 		}
 
@@ -118,7 +118,7 @@ export class RTVSynthModel {
 	 * Updates `boxEnvs' and builds `rows`
 	 * @param newEnvs
 	 */
-	public updateBoxEnvs(newEnvs: {[k: string] : [v: {[k1: string]: any}]}) {
+	public updateBoxEnvs(newEnvs: { [k: string]: [v: { [k1: string]: any }] }) {
 
 		let outVarNames: string[];
 		if (!this._outputVars) {
@@ -128,7 +128,7 @@ export class RTVSynthModel {
 		}
 
 		this._boxEnvs = this.computeEnvs(newEnvs);
-		let envs = this._boxEnvs;
+		const envs = this._boxEnvs;
 		let vars = this._boxVars;
 
 		if (this._prevEnvs) {
@@ -155,14 +155,14 @@ export class RTVSynthModel {
 		}
 
 		// Generate header
-		let rows: TableElement[][] = [];
-		let header: TableElement[] = [];
+		const rows: TableElement[][] = [];
+		const header: TableElement[] = [];
 		vars.forEach((v: string) => {
 			let name = '**' + v + '**';
 			if (outVarNames.includes(v)) {
-				name = '```html\n<strong>' + v + '</strong><sub>in</sub>```'
+				name = '```html\n<strong>' + v + '</strong><sub>in</sub>```';
 			} else {
-				name = '**' + v + '**'
+				name = '**' + v + '**';
 			}
 			header.push(new TableElement(name, 'header', 'header', 0, ''));
 		});
@@ -174,10 +174,10 @@ export class RTVSynthModel {
 
 		// Generate all rows
 		for (let i = 0; i < envs.length; i++) {
-			let env = envs[i];
-			let loopID = env['$'] as unknown as string;
-			let iter = env['#'] as unknown as string;
-			let row: TableElement[] = [];
+			const env = envs[i];
+			const loopID = env['$'] as unknown as string;
+			const iter = env['#'] as unknown as string;
+			const row: TableElement[] = [];
 			vars.forEach((v: string) => {
 				let varName = v;
 				let varEnv = env;
@@ -189,14 +189,14 @@ export class RTVSynthModel {
 					}
 				}
 
-				let s = varEnv[v] ? varEnv[v] as unknown as string : '';
-				let v_str: string = (!s || isHtmlEscape(s)) ? s : '```python\n' + s + '\n```';
+				const s = varEnv[v] ? varEnv[v] as unknown as string : '';
+				const v_str: string = (!s || isHtmlEscape(s)) ? s : '```python\n' + s + '\n```';
 
 				row.push(new TableElement(v_str, loopID, iter, this._lineNumber!, varName, varEnv));
 			});
 			outVarNames.forEach((v: string, i: number) => {
-				let s = env[v] ? env[v] as unknown as string : '';
-				let v_str: string = (!s || isHtmlEscape(s)) ? s : '```python\n' + s + '\n```';
+				const s = env[v] ? env[v] as unknown as string : '';
+				const v_str: string = (!s || isHtmlEscape(s)) ? s : '```python\n' + s + '\n```';
 				row.push(new TableElement(v_str, loopID, iter, this._lineNumber!, v, env, i === 0));
 			});
 			rows.push(row);
@@ -264,9 +264,9 @@ export class RTVSynthModel {
 	 *
 	 * @returns values for a synth requests
 	 */
-	public getValues() : {[k: string] : {[k1: string] : [v1: Object]}} {
-		let values: {[k: string] : {[k1: string] : [v1: Object]}} = {};
-		for (let env of this._boxEnvs!) {
+	public getValues(): { [k: string]: { [k1: string]: [v1: Object] } } {
+		const values: { [k: string]: { [k1: string]: [v1: Object] } } = {};
+		for (const env of this._boxEnvs!) {
 			if (this._includedTimes.has(env['time'] as unknown as number)) {
 				values[`(${env['lineno']},${env['time']})`] = env;
 			}
@@ -280,38 +280,38 @@ export class RTVSynthModel {
 	 * @param allEnvs
 	 * @returns
 	 */
-	public computeEnvs(allEnvs: {[k: string] : [v: {[k1: string]: any}]}) : {[k: string]: [v: any]}[]{
+	public computeEnvs(allEnvs: { [k: string]: [v: { [k1: string]: any }] }): { [k: string]: [v: any] }[] {
 		// Get all envs at this line number
 		let envs;
-		envs = allEnvs[this._lineNumber!-1];
+		envs = allEnvs[this._lineNumber! - 1];
 		envs = this.addMissingLines(envs);
 		return envs;
 	}
 
 
 	// helper function copied from `RTVDisplay.ts`
-	private addMissingLines(envs: {[k: string]: [v: any]}[]): {[k: string]: [v: any]}[] {
-		let last = function <T>(a: T[]): T { return a[a.length - 1]; };
-		let active_loop_iters: number[] = [];
-		let active_loop_ids: string[] = [];
-		let envs2: any[] = [];
+	private addMissingLines(envs: { [k: string]: [v: any] }[]): { [k: string]: [v: any] }[] {
+		const last = function <T>(a: T[]): T { return a[a.length - 1]; };
+		const active_loop_iters: number[] = [];
+		const active_loop_ids: string[] = [];
+		const envs2: any[] = [];
 		for (let i = 0; i < envs.length; i++) {
-			let env = envs[i];
+			const env = envs[i];
 			if (env.begin_loop !== undefined) {
 				if (active_loop_iters.length > 0) {
-					let loop_iters: string[] = (env.begin_loop as unknown as string).split(',');
+					const loop_iters: string[] = (env.begin_loop as unknown as string).split(',');
 					this.bringToLoopCount(envs2, active_loop_iters, last(active_loop_ids), +loop_iters[loop_iters.length - 2]);
 				}
 				active_loop_ids.push(env['$'] as unknown as string);
 				active_loop_iters.push(0);
 			} else if (env.end_loop !== undefined) {
-				let loop_iters: string[] = (env.end_loop as unknown as string).split(',');
+				const loop_iters: string[] = (env.end_loop as unknown as string).split(',');
 				this.bringToLoopCount(envs2, active_loop_iters, last(active_loop_ids), +last(loop_iters));
 				active_loop_ids.pop();
 				active_loop_iters.pop();
 				active_loop_iters[active_loop_iters.length - 1]++;
 			} else {
-				let loop_iters: string[] = (env['#'] as unknown as string).split(',');
+				const loop_iters: string[] = (env['#'] as unknown as string).split(',');
 				this.bringToLoopCount(envs2, active_loop_iters, last(active_loop_ids), +last(loop_iters));
 				envs2.push(env);
 				active_loop_iters[active_loop_iters.length - 1]++;
@@ -331,8 +331,8 @@ export class RTVSynthModel {
 
 	// comptues if a cell should be toggled on
 	public toggleOn(idx: number, force?: boolean): boolean {
-		let env = this._boxEnvs[idx];
-		let time = env['time'] as unknown as number;
+		const env = this._boxEnvs[idx];
+		const time = env['time'] as unknown as number;
 		let on: boolean;
 		if (!time) {
 			on = true;
@@ -346,7 +346,7 @@ export class RTVSynthModel {
 
 	// updates this._boxEnvs
 	public updateBoxState(idx: number, varname: string, content: string) {
-		let env = this._boxEnvs[idx];
+		const env = this._boxEnvs[idx];
 		env[varname] = content;
 		this._boxEnvs[idx] = env;
 		console.log(`env[${varname}] = ${env[varname]}`);
@@ -366,13 +366,13 @@ export class RTVSynthModel {
 	}
 
 	// removes invalid times from _includedTimes and returns signal for whether to highlight a row
-	public removeInvalidTimes(idx: number, editable?: boolean) : boolean | undefined {
+	public removeInvalidTimes(idx: number, editable?: boolean): boolean | undefined {
 		const env = this._boxEnvs![idx];
 		const time = env['time'] as unknown as number;
 		let highlight = undefined;
 		if (env) {
 			if (this._includedTimes.has(time)) {
-				if (editable == false) {
+				if (editable === false) {
 					this._includedTimes.delete(time);
 					highlight = false;
 				} else if (editable) {
@@ -385,7 +385,7 @@ export class RTVSynthModel {
 
 	// checks if the cell content is different from its env value
 	public cellContentChanged(idx: number, varname: string, content: string): boolean {
-		let env = this._boxEnvs[idx];
+		const env = this._boxEnvs[idx];
 		return env[varname] !== content;
 	}
 

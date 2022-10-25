@@ -1,9 +1,8 @@
-/* eslint-disable code-import-patterns */
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
-import { ARTVLogger } from 'vs/editor/contrib/rtv/RTVInterfaces';
+import { ARTVLogger } from 'vs/editor/contrib/rtv/browser/RTVInterfaces';
 
 /*
  * Things to log:
@@ -39,7 +38,7 @@ export class RTVLogger extends ARTVLogger {
 		}
 
 		// Build an fs-safe date/time:
-		let now = new Date();
+		const now = new Date();
 		dir += `snippy_log_${now.getMonth() + 1}-${now.getDate()}_${now.getHours()}-${now.getMinutes()}_${now.getSeconds()}`;
 
 		// Don't overwrite existing logs!
@@ -82,12 +81,12 @@ export class RTVLogger extends ARTVLogger {
 	}
 
 	private getCurrentFileName() {
-		let rs = this.editor.getModel()?.uri.toString();
+		const rs = this.editor.getModel()?.uri.toString();
 
 		if (rs) {
 			if (!rs.includes(this.currentFileName)) {
-				let start = rs.lastIndexOf('/') + 1;
-				let end = rs.length - start - 3;
+				const start = rs.lastIndexOf('/') + 1;
+				const end = rs.length - start - 3;
 				this.currentFileName = rs.substr(start, end);
 			}
 		} else {

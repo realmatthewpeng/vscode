@@ -1,17 +1,17 @@
-import { ARTVLogger } from 'vs/editor/contrib/rtv/RTVInterfaces';
+import { ARTVLogger } from 'vs/editor/contrib/rtv/browser/RTVInterfaces';
 import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
 
 class LogEventData {
 	constructor(
 		public code: string,
 		public message?: string,
-		) {}
+	) { }
 }
 
 class LogResultData {
 	constructor(
 		public file: string,
-		public content: string) {}
+		public content: string) { }
 }
 
 function headers(contentType: string = 'application/json;charset=UTF-8'): Headers {

@@ -69,7 +69,7 @@ const extractEditorSrcTask = task.define('extract-editor-src', () => {
 	const extrausages = fs.readFileSync(path.join(root, 'build', 'monaco', 'monaco.usage.recipe')).toString();
 
 	// Copy the RTVUtil file for front-end to the src dir
-	const rtv = 'src/vs/editor/contrib/rtv/';
+	const rtv = 'src/vs/editor/contrib/rtv/browser/';
 
 	// Backup the local files
 	fs.mkdirSync(rtv + 'local');

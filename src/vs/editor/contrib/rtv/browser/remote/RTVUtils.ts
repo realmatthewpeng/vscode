@@ -1,9 +1,9 @@
-import { IRTVLogger, Utils, RunProcess, RunResult, SynthProcess, SynthResult, SynthProblem, IRTVController } from 'vs/editor/contrib/rtv/RTVInterfaces';
-import { RTVLogger } from 'vs/editor/contrib/rtv/RTVLogger';
+import { IRTVLogger, Utils, RunProcess, RunResult, SynthProcess, SynthResult, SynthProblem, IRTVController } from 'vs/editor/contrib/rtv/browser/RTVInterfaces';
+import { RTVLogger } from 'vs/editor/contrib/rtv/browser/RTVLogger';
 import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
 
 declare const window: {
-	editor: ICodeEditor
+	editor: ICodeEditor;
 };
 
 class IDGenerator {
@@ -45,13 +45,13 @@ class PyodideWorkerResponse {
 		public readonly stdout: string,
 		public readonly stderr: string,
 		public readonly exitCode: number | null,
-		public readonly result: string | undefined) {}
+		public readonly result: string | undefined) { }
 }
 
 abstract class PyodideRequest {
 	public id: number = idGen.getId();
 
-	constructor(public type: RequestType) {}
+	constructor(public type: RequestType) { }
 }
 
 class RunpyRequest extends PyodideRequest {
@@ -80,7 +80,7 @@ class ImgSumRequest extends PyodideRequest {
 
 class SnipPyRequest extends PyodideRequest {
 	constructor(public readonly action: string,
-				public readonly parameter: string) {
+		public readonly parameter: string) {
 		super(RequestType.SNIPPY);
 	}
 }
@@ -89,7 +89,7 @@ class RemoteSynthProcess implements SynthProcess {
 	protected _controller = new AbortController();
 	protected _problemIdx: number = -1;
 
-	constructor(protected _logger?: IRTVLogger) {}
+	constructor(protected _logger?: IRTVLogger) { }
 
 	async synthesize(problem: SynthProblem): Promise<SynthResult | undefined> {
 		// First cancel any previous call
@@ -98,7 +98,7 @@ class RemoteSynthProcess implements SynthProcess {
 		problem.id = ++this._problemIdx;
 
 		try {
-			let response = await fetch(
+			const response = await fetch(
 				'/synthesize',
 				{
 					method: 'POST',
@@ -160,16 +160,15 @@ export function headers(contentType: string = 'application/json;charset=UTF-8'):
 class RemoteRunProcess implements RunProcess {
 	protected _promise: Promise<RunResult>;
 	private resolve: (rs: RunResult) => void = (_: RunResult) => console.error('resolve() called before it was set!');
-	private reject: () => void = () => {};
+	private reject: () => void = () => { };
 	private id: number;
 	private eventListener: (this: Worker, event: MessageEvent) => void;
 
 	constructor(request: PyodideRequest) {
 		this.id = request.id;
 
-		this.eventListener = (event: MessageEvent) =>
-		{
-			let msg: PyodideWorkerResponse = event.data;
+		this.eventListener = (event: MessageEvent) => {
+			const msg: PyodideWorkerResponse = event.data;
 
 			if (msg.id !== this.id) {
 				console.error(`Received message for id ${msg.id}, but this process id is ${this.id}.`);
@@ -177,8 +176,7 @@ class RemoteRunProcess implements RunProcess {
 				return;
 			}
 
-			switch (msg.type)
-			{
+			switch (msg.type) {
 				case ResponseType.RESULT:
 					this.resolve(msg);
 					pyodideWorker.removeEventListener('message', this.eventListener);
@@ -195,7 +193,7 @@ class RemoteRunProcess implements RunProcess {
 		this._promise = loadPyodide
 			.then(() => {
 				// First, make sure resolve and reject are set.
-				let rs: Promise<RunResult> = new Promise((resolve, reject) => {
+				const rs: Promise<RunResult> = new Promise((resolve, reject) => {
 					this.resolve = resolve;
 					this.reject = reject;
 				});
@@ -215,8 +213,7 @@ class RemoteRunProcess implements RunProcess {
 
 	then<TResult1>(
 		onfulfilled?: ((value: RunResult) => TResult1 | PromiseLike<TResult1>) | undefined | null,
-		onrejected?: ((reason: any) => never | PromiseLike<never>) | undefined | null): PromiseLike<TResult1 | never>
-	{
+		onrejected?: ((reason: any) => never | PromiseLike<never>) | undefined | null): PromiseLike<TResult1 | never> {
 		return this._promise.then(onfulfilled, onrejected);
 	}
 }
@@ -257,7 +254,7 @@ class RemoteUtils implements Utils {
 	}
 
 	async validate(input: string): Promise<string | undefined> {
-		let rs = await new RemoteRunProcess(new SnipPyRequest('validate', input));
+		const rs = await new RemoteRunProcess(new SnipPyRequest('validate', input));
 		return rs.stdout;
 	}
 
@@ -269,7 +266,7 @@ class RemoteUtils implements Utils {
 	}
 }
 
-let utils = new RemoteUtils();
+const utils = new RemoteUtils();
 export function getUtils(): Utils {
 	return utils;
 }
@@ -277,27 +274,23 @@ export function getUtils(): Utils {
 // Start the web worker
 const pyodideWorker = new Worker('pyodide/webworker.js');
 let resolvePyodide: (value?: unknown) => void;
-let loadPyodide = new Promise(resolve => resolvePyodide = resolve);
+const loadPyodide = new Promise(resolve => resolvePyodide = resolve);
 
-const pyodideWorkerInitListener = (event: MessageEvent) =>
-{
-	let msg = event.data as PyodideWorkerResponse;
+const pyodideWorkerInitListener = (event: MessageEvent) => {
+	const msg = event.data as PyodideWorkerResponse;
 
-	if (msg.type === ResponseType.LOADED)
-	{
+	if (msg.type === ResponseType.LOADED) {
 		console.log('Pyodide loaded!');
 		resolvePyodide();
 		pyodideWorker.removeEventListener('message', pyodideWorkerInitListener);
 
 		const program = window.editor.getModel()!!.getLinesContent().join('\n');
-		utils.runProgram(program).then(() =>
-		{
+		utils.runProgram(program).then(() => {
 			(window.editor.getContribution('editor.contrib.rtv') as IRTVController).runProgram();
 			(document.getElementById('spinner') as HTMLInputElement).style.display = 'none';
 		});
 	}
-	else
-	{
+	else {
 		console.error('First message from pyodide worker was not a load message!');
 		console.error(msg.type);
 		console.error(ResponseType.LOADED);
@@ -315,8 +308,8 @@ export function isHtmlEscape(s: string): boolean {
 }
 
 export function removeHtmlEscape(s: string): string {
-	let x = '```html\n'.length;
-	let y = '```'.length;
+	const x = '```html\n'.length;
+	const y = '```'.length;
 	return s.substring(x, s.length - y);
 }
 
@@ -330,5 +323,5 @@ export class TableElement {
 		public env?: any,
 		public leftBorder?: boolean,
 		public editable?: boolean
-	) {}
+	) { }
 }
