@@ -2713,16 +2713,21 @@ export class RTVController implements IRTVController {
 	}
 
 	public async runProgram(): Promise<[string, string, any?]> {
+		// Gets the program text
 		const program = this.getProgram();
+		// console.log('HERE IS PROGRAM: ' + program);
 
 		if (this.pythonProcess !== undefined) {
 			this.pythonProcess.kill();
 		}
 
+		// Go to RTVInterfaces, just for logging purposes
 		this.logger.projectionBoxUpdateStart(program);
+		// Go to RTVUtils
 		this.pythonProcess = this.utils.runProgram(program, this.getCWD());
 
 		const runResults: RunResult = await this.pythonProcess;
+		// console.log('HERE:' + runResults.result);
 		const outputMsg = runResults.stdout;
 		const errorMsg = runResults.stderr;
 		const exitCode = runResults.exitCode;

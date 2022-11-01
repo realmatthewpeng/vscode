@@ -377,7 +377,25 @@ def compute_runtime_data(lines, writes, values):
 		exception = e
 	l.data = adjust_to_next_time_step(l.data, l.lines)
 	remove_frame_data(l.data)
+	cut_long_inputs(l.data)
 	return (l.data, exception)
+
+def cut_long_inputs(data):
+	info = {"time", "#", "$", "lineno", "prev_lineno", "next_lineno"}
+	for lineno in data:
+		for env in data[lineno]:
+			for key in env:
+				if (key not in info):
+					# Long strings
+					if (env[key][0] == "\'"):
+						env[key] = env[key][0:8] + '...\'' if len(env[key]) > 10 else env[key]
+						continue
+					# Long arrays
+					if (env[key][0] == "["):
+						env[key] = env[key][0:8].strip() + '...]'
+						continue
+					# General case
+					env[key] = env[key][0:8] + '...' if len(env[key]) > 10 else env[key]
 
 def adjust_to_next_time_step(data, lines):
 	envs_by_time = {}
