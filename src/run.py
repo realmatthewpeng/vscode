@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import types
+import re
 
 from core import *
 
@@ -196,11 +197,64 @@ class Logger(bdb.Bdb):
 		html = if_img_convert_to_html(v)
 		if html == None:
 			try:
-				return repr(v)
+				str_repr = repr(v)
+				return Logger.trunc_str_repr(str_repr)
 			except:
 				return "Repr exception " + str(type(v))
 		else:
 			return add_html_escape(html)
+
+	def trunc_str_repr(str_repr):
+		str_type = type(eval(str_repr))
+		# Handling Strings
+		if (str_type == str):
+			if (len(str_repr) > 10):
+				str_repr = str_repr[0:9] + "...\'"
+		# Handling Lists
+		elif (str_type == list):
+			if (len(str_repr) > 15):
+				disp_items = 0
+				for index in range(0,15):
+					if (str_repr[index] == ","):
+						disp_items += 1
+				arr = eval(str_repr)
+				arr_len = len(arr)
+				if (disp_items == 0):
+					return f"[{arr_len} item(s)]"
+				str_repr = repr(arr[:disp_items])
+				remaining = arr_len - disp_items
+				str_repr = str_repr[:-1] + f", ...({remaining} more)]"
+		# Handling Ints and Floats
+		elif ((str_type == int or str_type == float) and len(str_repr) > 8):
+			str_repr = str_repr[0:8] + "..."
+		# Handling Tuples, Sets, Dictionaries
+		elif (str_type == tuple or str_type == set or str_type == dict):
+			if (len(str_repr) > 15):
+				split = str_repr.split(",")
+				str_len = 0
+				new_str = ""
+				count = 0
+				for seg in split:
+					if (str_len + len(seg) > 15):
+						break
+					new_str = new_str + seg + ","
+					count += 1
+					str_len += len(seg)
+				if (str_len == 0):
+					n = len(split)
+					if (str_type == tuple):
+						return f"({n}-tuple)"
+					if (str_type == set):
+						return f"{{{n} item(s)}}"
+					if (str_type == dict):
+						return f"{{{n} k-v pairs}}"
+				if (new_str[:-1] != str_repr):
+					remaining = len(split)-count
+					if (str_type == tuple):
+						return new_str + f" ...{{{remaining} more}})"
+					if (str_type == set or str_type == dict):
+						return new_str + f" ...({remaining} more)}}"
+		return str_repr
 
 	def record_env(self, frame, lineno):
 		line_time = "(%s,%d)" % (lineno, self.time)
@@ -377,7 +431,7 @@ def compute_runtime_data(lines, writes, values):
 		exception = e
 	l.data = adjust_to_next_time_step(l.data, l.lines)
 	remove_frame_data(l.data)
-	cut_long_inputs(l.data)
+	# cut_long_inputs(l.data)
 	return (l.data, exception)
 
 def cut_long_inputs(data):
