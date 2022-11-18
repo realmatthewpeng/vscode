@@ -205,55 +205,81 @@ class Logger(bdb.Bdb):
 			return add_html_escape(html)
 
 	def trunc_str_repr(str_repr):
-		str_type = type(eval(str_repr))
+		data = eval(str_repr)
+		str_type = type(data)
 		# Handling Strings
 		if (str_type == str):
 			if (len(str_repr) > 10):
 				str_repr = str_repr[0:9] + "...\'"
-		# Handling Lists
-		elif (str_type == list):
-			if (len(str_repr) > 15):
-				disp_items = 0
-				for index in range(0,15):
-					if (str_repr[index] == ","):
-						disp_items += 1
-				arr = eval(str_repr)
-				arr_len = len(arr)
-				if (disp_items == 0):
-					return f"[{arr_len} item(s)]"
-				str_repr = repr(arr[:disp_items])
-				remaining = arr_len - disp_items
-				str_repr = str_repr[:-1] + f", ...({remaining} more)]"
+		# Handling Lists, Tuples, Sets, Dicts
+		elif (str_type == list or str_type == tuple or str_type == set or str_type == dict):
+			if (len(data) == 0):
+				if (str_type == list):
+					return "[]"
+				elif (str_type == tuple):
+					return "()"
+				elif (str_type == set or str_type == dict):
+					return "{}"
+
+			if (str_type == list):
+				new_str = "["
+			elif (str_type == tuple):
+				new_str = "("
+			elif (str_type == set or str_type == dict):
+				new_str = "{"
+
+			items = 0
+			elem_len = 0
+			if (str_type != dict):
+				for elem in data:
+					elem_repr = repr(elem)
+					if (elem_len+len(elem_repr) < 9):
+						new_str = new_str + elem_repr + ", "
+						elem_len += len(elem_repr)
+						items += 1
+					else:
+						break
+			else:
+				for key in data:
+					key_repr = repr(key)
+					val = data[key]
+					val_repr = repr(val)
+					elem_repr = key_repr + ":" + val_repr
+					if (elem_len+len(elem_repr) < 17):
+						new_str = new_str + elem_repr + ", "
+						elem_len += len(elem_repr)
+						items += 1
+					else:
+						break
+
+			remaining = len(data) - items
+			if (items == 0):
+				if (str_type == list):
+					new_str += f"{remaining} item(s)]"
+				elif (str_type == tuple):
+					new_str += f"{remaining}-tuple)"
+				elif (str_type == set):
+					new_str += f"{remaining} items(s)}}"
+				elif (str_type == dict):
+					new_str += f"{remaining} k-v pair(s)}}"
+			elif (items != 0 and remaining > 0):
+				if (str_type == list):
+					new_str += f"...({remaining} more)]"
+				elif (str_type == tuple):
+					new_str += f"...{{{remaining} more}})"
+				elif (str_type == set or str_type == dict):
+					new_str += f"...({remaining} more)}}"
+			else:
+				if (str_type == list):
+					new_str = new_str[:-2] + "]"
+				elif (str_type == tuple):
+					new_str = new_str[:-2] + ")"
+				elif (str_type == set or str_type == dict):
+					new_str = new_str[:-2] + "}"
+			return new_str
 		# Handling Ints and Floats
 		elif ((str_type == int or str_type == float) and len(str_repr) > 8):
 			str_repr = str_repr[0:8] + "..."
-		# Handling Tuples, Sets, Dictionaries
-		elif (str_type == tuple or str_type == set or str_type == dict):
-			if (len(str_repr) > 15):
-				split = str_repr.split(",")
-				str_len = 0
-				new_str = ""
-				count = 0
-				for seg in split:
-					if (str_len + len(seg) > 15):
-						break
-					new_str = new_str + seg + ","
-					count += 1
-					str_len += len(seg)
-				if (str_len == 0):
-					n = len(split)
-					if (str_type == tuple):
-						return f"({n}-tuple)"
-					if (str_type == set):
-						return f"{{{n} item(s)}}"
-					if (str_type == dict):
-						return f"{{{n} k-v pairs}}"
-				if (new_str[:-1] != str_repr):
-					remaining = len(split)-count
-					if (str_type == tuple):
-						return new_str + f" ...{{{remaining} more}})"
-					if (str_type == set or str_type == dict):
-						return new_str + f" ...({remaining} more)}}"
 		return str_repr
 
 	def record_env(self, frame, lineno):
